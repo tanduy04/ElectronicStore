@@ -1,6 +1,0 @@
-@ElectronicStore.WebApi_HostAddress = http://localhost:5029
-
-GET {{ElectronicStore.WebApi_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
