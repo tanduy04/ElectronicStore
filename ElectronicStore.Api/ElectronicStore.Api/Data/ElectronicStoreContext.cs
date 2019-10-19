@@ -474,7 +474,9 @@ public partial class ElectronicStoreContext : DbContext
             entity.ToTable("Supplier");
 
             entity.Property(e => e.SupplierId).HasColumnName("SupplierID");
+            entity.Property(e => e.SupplierAddress).HasMaxLength(100);
             entity.Property(e => e.SupplierName).HasMaxLength(255);
+            entity.Property(e => e.SupplierPhone).HasMaxLength(10);
         });
 
         modelBuilder.Entity<Voucher>(entity =>

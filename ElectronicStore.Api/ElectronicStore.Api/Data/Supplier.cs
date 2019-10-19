@@ -9,6 +9,10 @@ public partial class Supplier
 
     public string SupplierName { get; set; } = null!;
 
+    public string? SupplierPhone { get; set; }
+
+    public string? SupplierAddress { get; set; }
+
     public virtual Import? ImportImportNavigation { get; set; }
 
     public virtual ICollection<Import> ImportSuppliers { get; set; } = new List<Import>();

@@ -1,7 +1,9 @@
 ﻿using ElectronicStore.Api.Data;
+using ElectronicStore.Api.Dto;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 namespace ElectronicStore.Api.Controllers
 {
@@ -35,15 +37,15 @@ namespace ElectronicStore.Api.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<Supplier>> CreateSupplier([FromForm] string SupplierName)
+        public async Task<ActionResult<Supplier>> CreateSupplier([FromForm] SupplierDto Supplier)
         {
-            if(string.IsNullOrEmpty(SupplierName))
-            {
-                return BadRequest("SupplierName is required.");
-            }
+            if (!ModelState.IsValid) return BadRequest(ModelState);
             var supplier = new Supplier
             {
-                SupplierName = SupplierName
+                SupplierName = Supplier.SupplierName,
+                SupplierAddress = Supplier.SupplierAddress,
+                SupplierPhone = Supplier.SupplierPhone
+
             };
             _context.Suppliers.Add(supplier);
             await _context.SaveChangesAsync();
@@ -53,17 +55,17 @@ namespace ElectronicStore.Api.Controllers
 
         // 🟢 Cập nhật Supplier
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateSupplier(int id, [FromForm] string supplierName)
+        public async Task<IActionResult> UpdateSupplier(int id, [FromForm] SupplierDto SupplierDto)
         {
-            if (string.IsNullOrEmpty(supplierName))
-            {
-                return BadRequest("SupplierName is required.");
-            }
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
             var supplier = await _context.Suppliers.FindAsync(id);
             if (supplier == null)
                 return NotFound();
 
-            supplier.SupplierName = supplierName;
+            supplier.SupplierName = SupplierDto.SupplierName;
+            supplier.SupplierAddress = SupplierDto.SupplierAddress;
+            supplier.SupplierPhone = SupplierDto.SupplierPhone;
             _context.Update(supplier);
             await _context.SaveChangesAsync();
             return Ok("Updated Success");
