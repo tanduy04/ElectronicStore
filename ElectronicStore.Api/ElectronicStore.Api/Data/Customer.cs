@@ -11,6 +11,8 @@ public partial class Customer
 
     public string FullName { get; set; } = null!;
 
+    public int? Point { get; set; }
+
     public string? Address { get; set; }
 
     public DateOnly? BirthDate { get; set; }

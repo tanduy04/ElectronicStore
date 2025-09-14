@@ -27,8 +27,6 @@ public partial class ElectronicStoreContext : DbContext
 
     public virtual DbSet<Cart> Carts { get; set; }
 
-    public virtual DbSet<CartDetail> CartDetails { get; set; }
-
     public virtual DbSet<Category> Categories { get; set; }
 
     public virtual DbSet<Customer> Customers { get; set; }
@@ -58,6 +56,7 @@ public partial class ElectronicStoreContext : DbContext
     public virtual DbSet<Voucher> Vouchers { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
         => optionsBuilder.UseSqlServer("Data Source=.;Initial Catalog=ElectronicStore;Integrated Security=True;Encrypt=True;Trust Server Certificate=True");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -149,48 +148,27 @@ public partial class ElectronicStoreContext : DbContext
             entity.HasKey(e => e.BrandId).HasName("PK__Brands__DAD4F3BEEDB61A64");
 
             entity.Property(e => e.BrandId).HasColumnName("BrandID");
+            entity.Property(e => e.BrandImage).HasMaxLength(200);
             entity.Property(e => e.BrandName).HasMaxLength(200);
-            entity.Property(e => e.Description).HasMaxLength(1000);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
         });
 
         modelBuilder.Entity<Cart>(entity =>
         {
-            entity.HasKey(e => e.CartId).HasName("PK__Carts__51BCD797D057EBF0");
+            entity.HasKey(e => new { e.CartId, e.ProductId });
 
-            entity.HasIndex(e => e.AccountId, "UQ_Carts_Account").IsUnique();
-
-            entity.Property(e => e.CartId).HasColumnName("CartID");
-            entity.Property(e => e.AccountId).HasColumnName("AccountID");
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
-
-            entity.HasOne(d => d.Account).WithOne(p => p.Cart)
-                .HasForeignKey<Cart>(d => d.AccountId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Carts_Account");
-        });
-
-        modelBuilder.Entity<CartDetail>(entity =>
-        {
-            entity.HasKey(e => e.CartDetailId).HasName("PK__CartDeta__01B6A6D4CC07B7C7");
-
-            entity.HasIndex(e => new { e.CartId, e.ProductId }, "UQ_CartDetails_Cart_Product").IsUnique();
-
-            entity.Property(e => e.CartDetailId).HasColumnName("CartDetailID");
             entity.Property(e => e.CartId).HasColumnName("CartID");
             entity.Property(e => e.ProductId).HasColumnName("ProductID");
-            entity.Property(e => e.Quantity).HasDefaultValue(1);
-            entity.Property(e => e.UnitPrice).HasColumnType("decimal(18, 2)");
 
-            entity.HasOne(d => d.Cart).WithMany(p => p.CartDetails)
+            entity.HasOne(d => d.CartNavigation).WithMany(p => p.Carts)
                 .HasForeignKey(d => d.CartId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_CartDetails_Carts");
+                .HasConstraintName("FK_Carts_Account");
 
-            entity.HasOne(d => d.Product).WithMany(p => p.CartDetails)
+            entity.HasOne(d => d.Product).WithMany(p => p.Carts)
                 .HasForeignKey(d => d.ProductId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_CartDetails_Products");
+                .HasConstraintName("FK_Carts_Product");
         });
 
         modelBuilder.Entity<Category>(entity =>
@@ -198,10 +176,9 @@ public partial class ElectronicStoreContext : DbContext
             entity.HasKey(e => e.CategoryId).HasName("PK__Categori__19093A2B985BFBA0");
 
             entity.Property(e => e.CategoryId).HasColumnName("CategoryID");
+            entity.Property(e => e.CategoryImage).HasMaxLength(1000);
             entity.Property(e => e.CategoryName).HasMaxLength(200);
-            entity.Property(e => e.Description).HasMaxLength(1000);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
-            entity.Property(e => e.ParentId).HasColumnName("ParentID");
         });
 
         modelBuilder.Entity<Customer>(entity =>
@@ -215,6 +192,7 @@ public partial class ElectronicStoreContext : DbContext
             entity.Property(e => e.Address).HasMaxLength(500);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.FullName).HasMaxLength(200);
+            entity.Property(e => e.Point).HasColumnName("point");
 
             entity.HasOne(d => d.Account).WithOne(p => p.Customer)
                 .HasForeignKey<Customer>(d => d.AccountId)
@@ -402,11 +380,12 @@ public partial class ElectronicStoreContext : DbContext
             entity.Property(e => e.BrandId).HasColumnName("BrandID");
             entity.Property(e => e.CategoryId).HasColumnName("CategoryID");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
-            entity.Property(e => e.ImageUrl).HasMaxLength(500);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
-            entity.Property(e => e.Price).HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.ProductCode).HasMaxLength(50);
+            entity.Property(e => e.Price)
+                .HasDefaultValue(0m)
+                .HasColumnType("decimal(18, 2)");
             entity.Property(e => e.ProductName).HasMaxLength(300);
+            entity.Property(e => e.StockQuantity).HasDefaultValue(0);
 
             entity.HasOne(d => d.Brand).WithMany(p => p.Products)
                 .HasForeignKey(d => d.BrandId)
@@ -423,7 +402,7 @@ public partial class ElectronicStoreContext : DbContext
 
             entity.Property(e => e.ImageId).HasColumnName("ImageID");
             entity.Property(e => e.ProductId).HasColumnName("ProductID");
-            entity.Property(e => e.Url).HasMaxLength(500);
+            entity.Property(e => e.UrlProductImage).HasMaxLength(500);
 
             entity.HasOne(d => d.Product).WithMany(p => p.ProductImages)
                 .HasForeignKey(d => d.ProductId)

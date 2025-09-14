@@ -29,7 +29,7 @@ public partial class Account
 
     public virtual ICollection<AccountToken> AccountTokens { get; set; } = new List<AccountToken>();
 
-    public virtual Cart? Cart { get; set; }
+    public virtual ICollection<Cart> Carts { get; set; } = new List<Cart>();
 
     public virtual Customer? Customer { get; set; }
 

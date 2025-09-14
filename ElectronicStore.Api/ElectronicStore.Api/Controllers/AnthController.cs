@@ -33,17 +33,30 @@ namespace ElectronicStore.Api.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register(RegisterDto dto)
+        public async Task<IActionResult> Register([FromBody]  RegisterDto dto)
         {
             if (_db.Accounts.Any(a => a.Email == dto.Email))
                 return BadRequest("Email already exists");
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            var role_custommer= _db.Roles.FirstOrDefault(r => r.RoleName == "Customer");
 
             var account = new Account
             {
                 Email = dto.Email,
                 Username = dto.Username,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                RoleId = 3 // Customer
+                RoleId = role_custommer.RoleId,
+                PhoneNumber= dto.PhoneNumber,
+                IsActive=true,
+                CreatedAt= DateTime.UtcNow,
+            };
+            var custommer = new Customer
+            {
+                FullName = dto.FullName,
+                AccountId = account.AccountId,
+                CreatedAt = DateTime.UtcNow,
+                Point = 0
             };
 
             _db.Accounts.Add(account);
@@ -61,13 +74,13 @@ namespace ElectronicStore.Api.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login(LoginDto dto)
+        public async Task<IActionResult> Login([FromBody]  LoginDto dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
             var account = _db.Accounts.Include(a => a.Role).FirstOrDefault(a => a.Username == dto.Username);  
             if (account == null || !BCrypt.Net.BCrypt.Verify(dto.Password, account.PasswordHash))
-                return Unauthorized("Invalid credentials");
+                return Unauthorized("Incorrect username or password");
 
             var accessToken = _tokenService.GenerateAccessToken(account);
             var refreshToken = _tokenService.GenerateRefreshToken();
@@ -85,8 +98,10 @@ namespace ElectronicStore.Api.Controllers
         }
 
         [HttpPost("refresh-token")]
-        public async Task<IActionResult> RefreshToken(RefreshTokenDto dto)
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDto dto)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
             var token = _db.AccountTokens.FirstOrDefault(t => t.RefreshToken == dto.RefreshToken);
             if (token == null || token.ExpiryDate < DateTime.UtcNow)
                 return Unauthorized("Invalid refresh token");
@@ -104,24 +119,23 @@ namespace ElectronicStore.Api.Controllers
         }
         [HttpPost("change-password")]
         [Authorize]
-        public async Task<IActionResult> ChangePassword(ChangePasswordDto model)
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto model)
         {
-            // Lấy userId từ token
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
             var accountId = int.Parse(User.FindFirstValue("AccountID"));
 
             var account = await _db.Accounts.FirstOrDefaultAsync(x => x.AccountId == accountId);
             if (account == null)
-                return NotFound("Không tìm thấy tài khoản");
+                return NotFound("Account not found!");
 
-            // Kiểm tra mật khẩu cũ
             if (!BCrypt.Net.BCrypt.Verify(model.OldPassword, account.PasswordHash))
-                return BadRequest("Mật khẩu cũ không đúng");
+                return BadRequest("Incorrect old password");
 
-            // Hash mật khẩu mới
             account.PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.NewPassword);
             await _db.SaveChangesAsync();
 
-            return Ok("Đổi mật khẩu thành công");
+            return Ok("Password changed successfully");
         }
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
@@ -129,18 +143,14 @@ namespace ElectronicStore.Api.Controllers
             var user = await _db.Accounts.FirstOrDefaultAsync(u => u.Email == dto.Email);
             if (user == null)
             {
-                return BadRequest("Email không tồn tại trong hệ thống!");
+                return BadRequest("Email doesn't exist");
             }
 
-            // Tạo mật khẩu ngẫu nhiên
-            var newPassword = "123456";
-            //var newPassword = GenerateRandomPassword(10);
+            var newPassword = GenerateRandomPassword(10);
 
-            // Hash mật khẩu
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
             await _db.SaveChangesAsync();
 
-            // Gửi email
             var subject = "Mật khẩu mới của bạn";
             var body = $@"
             <h2>Xin chào {user.Email},</h2>
@@ -151,7 +161,7 @@ namespace ElectronicStore.Api.Controllers
 
             await _emailService.SendForgotPasswordEmail(dto.Email,newPassword);
 
-            return Ok("Mật khẩu mới đã được gửi về email của bạn!");
+            return Ok("A new password has been sent to your email.");
         }
 
         // Hàm tạo mật khẩu ngẫu nhiên

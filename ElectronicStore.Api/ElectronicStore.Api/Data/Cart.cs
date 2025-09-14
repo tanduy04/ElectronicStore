@@ -7,11 +7,11 @@ public partial class Cart
 {
     public int CartId { get; set; }
 
-    public int AccountId { get; set; }
+    public int ProductId { get; set; }
 
-    public DateTime CreatedAt { get; set; }
+    public int Quantity { get; set; }
 
-    public virtual Account Account { get; set; } = null!;
+    public virtual Account CartNavigation { get; set; } = null!;
 
-    public virtual ICollection<CartDetail> CartDetails { get; set; } = new List<CartDetail>();
+    public virtual Product Product { get; set; } = null!;
 }

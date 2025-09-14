@@ -9,9 +9,7 @@ public partial class Category
 
     public string CategoryName { get; set; } = null!;
 
-    public string? Description { get; set; }
-
-    public int? ParentId { get; set; }
+    public string CategoryImage { get; set; } = null!;
 
     public bool IsActive { get; set; }
 

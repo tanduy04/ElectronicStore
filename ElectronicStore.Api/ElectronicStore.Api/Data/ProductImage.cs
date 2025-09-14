@@ -9,9 +9,9 @@ public partial class ProductImage
 
     public int ProductId { get; set; }
 
-    public string Url { get; set; } = null!;
+    public string UrlProductImage { get; set; } = null!;
 
-    public int SortOrder { get; set; }
+    public bool ImageMain { get; set; }
 
     public virtual Product Product { get; set; } = null!;
 }
