@@ -42,7 +42,7 @@ namespace ElectronicStore.Api.Controllers
     string? sortBy = "CreatedAt",
     string? sortOrder = "desc",
     int pageNumber = 1,
-    int pageSize = 1)
+    int pageSize = 12)
         {
             var query = _context.Products.AsQueryable();
 
@@ -60,7 +60,7 @@ namespace ElectronicStore.Api.Controllers
     string? sortBy = "CreatedAt",
     string? sortOrder = "desc",
     int pageNumber = 1,
-    int pageSize = 10)
+    int pageSize = 12)
         {
             var query = _context.Products
                 .Where(p => p.ProductName.Contains(search));
