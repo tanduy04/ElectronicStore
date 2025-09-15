@@ -70,6 +70,15 @@ builder.Services.AddAuthentication(options =>
     };
 });
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("OpenCorsPolicy", policy =>
+    {
+        policy.AllowAnyOrigin()   
+              .AllowAnyHeader()   
+              .AllowAnyMethod();  
+    });
+});
 builder.Services.AddTransient<EmailService>();
 
 
@@ -84,6 +93,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+app.UseCors("OpenCorsPolicy");
 app.UseStaticFiles();
 
 app.UseHttpsRedirection();
