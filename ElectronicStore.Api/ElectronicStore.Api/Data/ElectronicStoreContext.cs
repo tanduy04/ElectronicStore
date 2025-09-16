@@ -72,6 +72,7 @@ public partial class ElectronicStoreContext : DbContext
             entity.HasIndex(e => e.Username, "UQ_Accounts_Username").IsUnique();
 
             entity.Property(e => e.AccountId).HasColumnName("AccountID");
+            entity.Property(e => e.Avatar).HasMaxLength(256);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.Email).HasMaxLength(256);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
@@ -139,8 +140,6 @@ public partial class ElectronicStoreContext : DbContext
             entity.Property(e => e.BannerId).HasColumnName("BannerID");
             entity.Property(e => e.BannerName).HasMaxLength(200);
             entity.Property(e => e.ImageUrl).HasMaxLength(500);
-            entity.Property(e => e.IsActive).HasDefaultValue(true);
-            entity.Property(e => e.LinkUrl).HasMaxLength(500);
         });
 
         modelBuilder.Entity<Brand>(entity =>
@@ -185,8 +184,6 @@ public partial class ElectronicStoreContext : DbContext
         {
             entity.HasKey(e => e.CustomerId).HasName("PK__Customer__A4AE64B89A4A7A3D");
 
-            entity.HasIndex(e => e.AccountId, "UQ__Customer__349DA587A42B3DFA").IsUnique();
-
             entity.Property(e => e.CustomerId).HasColumnName("CustomerID");
             entity.Property(e => e.AccountId).HasColumnName("AccountID");
             entity.Property(e => e.Address).HasMaxLength(500);
@@ -194,8 +191,8 @@ public partial class ElectronicStoreContext : DbContext
             entity.Property(e => e.FullName).HasMaxLength(200);
             entity.Property(e => e.Point).HasColumnName("point");
 
-            entity.HasOne(d => d.Account).WithOne(p => p.Customer)
-                .HasForeignKey<Customer>(d => d.AccountId)
+            entity.HasOne(d => d.Account).WithMany(p => p.Customers)
+                .HasForeignKey(d => d.AccountId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Customers_Account");
         });

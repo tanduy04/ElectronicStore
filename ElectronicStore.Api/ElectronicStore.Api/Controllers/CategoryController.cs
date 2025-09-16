@@ -23,148 +23,183 @@ public class CategoriesController : ControllerBase
     [HttpGet]
     public IActionResult GetAll()
     {
-        var categories = _context.Categories.ToList();
-        var baseUrl = $"{Request.Scheme}://{Request.Host}/";
-
-        var result = categories.Select(c => new
+        try
         {
-            c.CategoryId,
-            c.CategoryName,
-            ImageUrl = $"{baseUrl}{_config["ImageSettings:CategoryPath"]}{c.CategoryImage}",
-            c.IsActive
-        });
+            var categories = _context.Categories.ToList();
+            var baseUrl = $"{Request.Scheme}://{Request.Host}/";
 
-        return Ok(result);
+            var result = categories.Select(c => new
+            {
+                c.CategoryId,
+                c.CategoryName,
+                ImageUrl = $"{baseUrl}{_config["ImageSettings:CategoryPath"]}{c.CategoryImage}",
+                c.IsActive
+            });
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
     }
 
     [HttpGet("{id}")]
     public IActionResult GetById(int id)
     {
-        var category = _context.Categories.Find(id);
-        if (category == null) return NotFound();
-
-        var baseUrl = $"{Request.Scheme}://{Request.Host}/";
-
-        return Ok(new
+        try
         {
-            category.CategoryId,
-            category.CategoryName,
-            ImageUrl = $"{baseUrl}{_config["ImageSettings:CategoryPath"]}{category.CategoryImage}",
-            category.IsActive
-        });
+            var category = _context.Categories.Find(id);
+            if (category == null) return NotFound();
+
+            var baseUrl = $"{Request.Scheme}://{Request.Host}/";
+
+            return Ok(new
+            {
+                category.CategoryId,
+                category.CategoryName,
+                ImageUrl = $"{baseUrl}{_config["ImageSettings:CategoryPath"]}{category.CategoryImage}",
+                category.IsActive
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, "Internal server error: " + ex.Message);
+        }
     }
+    [HttpGet("search")]
+    public IActionResult SearchByName(string name)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return BadRequest("Search term is required.");
+            }
+
+            var baseUrl = $"{Request.Scheme}://{Request.Host}/";
+
+            var brands = _context.Categories
+                .Where(b => b.CategoryName.Contains(name)) // Tìm theo tên
+                .Select(b => new
+                {
+                    b.CategoryId,
+                    b.CategoryName,
+                    ImageUrl = $"{baseUrl}{_config["ImageSettings:BrandPath"]}{b.CategoryImage}",
+                    b.IsActive
+                })
+                .ToList();
+
+            if (!brands.Any())
+            {
+                return NotFound("Not found");
+            }
+
+            return Ok(brands);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
+    }
+
 
     [HttpPost]
     [Authorize(Roles = "Admin,Employee")]
-
     public async Task<IActionResult> Create([FromForm] CategoryDto dto)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
-        string fileName = null;
-        if (dto.CategoryName != null)
+        try
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            if (dto.CategoryImage == null || !ImageHelper.IsImageFile(dto.CategoryImage))
+                return BadRequest("Please upload a valid image file (jpg, jpeg, png, gif).");
+
             string folderPath = Path.Combine(_env.WebRootPath, _config["ImageSettings:CategoryPath"]);
-            if (!Directory.Exists(folderPath)) Directory.CreateDirectory(folderPath);
+            string fileName = await ImageHelper.SaveImageAsync(dto.CategoryImage, folderPath, dto.CategoryName);
 
-            string normalized = ImageHelper.NormalizeFileName(dto.CategoryName);
-            string extension = Path.GetExtension(dto.CategoryImage.FileName);
-            fileName = $"{normalized}{extension}";
-
-            string fullPath = Path.Combine(folderPath, fileName);
-            using (var stream = new FileStream(fullPath, FileMode.Create))
+            var category = new Category
             {
-                await dto.CategoryImage.CopyToAsync(stream);
-            }
+                CategoryName = dto.CategoryName,
+                CategoryImage = fileName,
+                IsActive = dto.IsActive
+            };
+
+            _context.Categories.Add(category);
+            await _context.SaveChangesAsync();
+
+            return Ok("Category created successfully.");
         }
-
-        var category = new Category
+        catch (Exception ex)
         {
-            CategoryName = dto.CategoryName,
-            CategoryImage = fileName,
-            IsActive = dto.IsActive
-        };
-
-        _context.Categories.Add(category);
-        await _context.SaveChangesAsync();
-
-        return Ok(category);
+            return StatusCode(500, "Internal server error: " + ex.Message);
+        }
     }
 
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin,Employee")]
-
-
     public async Task<IActionResult> Update(int id, [FromForm] CategoryDto dto)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-        var category = _context.Categories.Find(id);
-        if (category == null) return NotFound("Category not found.");
-
-        category.CategoryName = dto.CategoryName;
-        category.IsActive = dto.IsActive;
-
-        if (dto.CategoryImage != null)
+        try
         {
-            string folderPath = Path.Combine(_env.WebRootPath, _config["ImageSettings:CategoryPath"]);
-            if (!Directory.Exists(folderPath)) Directory.CreateDirectory(folderPath);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-            // Xóa ảnh cũ nếu tồn tại
-            if (!string.IsNullOrEmpty(category.CategoryImage))
+            var category = _context.Categories.Find(id);
+            if (category == null) return NotFound("Category not found.");
+
+            category.CategoryName = dto.CategoryName;
+            category.IsActive = dto.IsActive;
+
+            if (dto.CategoryImage != null)
             {
-                string oldPath = Path.Combine(folderPath, category.CategoryImage);
-                if (System.IO.File.Exists(oldPath))
-                {
-                    System.IO.File.Delete(oldPath);
-                }
+                if (!ImageHelper.IsImageFile(dto.CategoryImage))
+                    return BadRequest("Please upload a valid image file (jpg, jpeg, png, gif).");
+
+                string folderPath = Path.Combine(_env.WebRootPath, _config["ImageSettings:CategoryPath"]);
+
+                // Xóa ảnh cũ nếu có
+                ImageHelper.DeleteFileIfExists(folderPath, category.CategoryImage);
+
+                // Lưu ảnh mới
+                category.CategoryImage = await ImageHelper.SaveImageAsync(dto.CategoryImage, folderPath, dto.CategoryName);
             }
 
-            // Lưu ảnh mới
-            string normalized = ImageHelper.NormalizeFileName(dto.CategoryName);
-            string extension = Path.GetExtension(dto.CategoryImage.FileName);
-            string fileName = $"{normalized}{extension}";
+            _context.Categories.Update(category);
+            await _context.SaveChangesAsync();
 
-            string fullPath = Path.Combine(folderPath, fileName);
-            using (var stream = new FileStream(fullPath, FileMode.Create))
-            {
-                await dto.CategoryImage.CopyToAsync(stream);
-            }
-
-            category.CategoryImage = fileName;
+            return Ok("Category updated successfully.");
         }
-
-        _context.Categories.Update(category);
-        await _context.SaveChangesAsync();
-
-        return Ok("Category updated successfully.");
+        catch (Exception ex)
+        {
+            return StatusCode(500, "Internal server error: " + ex.Message);
+        }
     }
 
     [HttpDelete("{id}")]
     [Authorize(Roles = "Admin,Employee")]
-
-
     public async Task<IActionResult> Delete(int id)
     {
-        var category = _context.Categories.Find(id);
-        if (category == null) return NotFound("Category not found.");
-
-        // Xóa file ảnh nếu tồn tại
-        if (!string.IsNullOrEmpty(category.CategoryImage))
+        try
         {
-            string folderPath = Path.Combine(_env.WebRootPath, _config["ImageSettings:CategoryPath"]);
-            string filePath = Path.Combine(folderPath, category.CategoryImage);
-            if (System.IO.File.Exists(filePath))
+            var category = _context.Categories.Find(id);
+            if (category == null) return NotFound("Category not found.");
+            bool hasProducts = await _context.Products.AnyAsync(p => p.CategoryId == id);
+            if (hasProducts)
             {
-                System.IO.File.Delete(filePath);
+                return BadRequest("Cannot delete category because there are products associated with it.");
             }
+            string folderPath = Path.Combine(_env.WebRootPath, _config["ImageSettings:CategoryPath"]);
+            ImageHelper.DeleteFileIfExists(folderPath, category.CategoryImage);
+
+            _context.Categories.Remove(category);
+            await _context.SaveChangesAsync();
+
+            return Ok("Category deleted successfully.");
         }
-
-        _context.Categories.Remove(category);
-        await _context.SaveChangesAsync();
-
-        return Ok("Category deleted successfully.");
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
     }
-
 }

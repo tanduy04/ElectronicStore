@@ -8,7 +8,7 @@ namespace ElectronicStore.Api.Dto
         public int ProductId { get; set; }
         [Required]
 
-        public int Quantity  { get; set; }
+        public int Quantity { get; set; } = 1;
     }
 
     public class UpdateCartDto

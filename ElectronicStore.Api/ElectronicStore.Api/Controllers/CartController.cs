@@ -57,35 +57,42 @@ namespace ElectronicStore.Api.Controllers
 
         public async Task<IActionResult> AddToCart([FromBody] AddToCartDto dto)
         {
-            var productExists = await _context.Products.AnyAsync(p => p.ProductId == dto.ProductId);
-            if (!productExists)
+            try
             {
-                return BadRequest("Product not found");
-            }
-            int accountId = GetAccountId();
-
-            int quantity = dto.Quantity;
-
-            var cartItem = await _context.Carts
-                .FirstOrDefaultAsync(c => c.CartId == accountId && c.ProductId == dto.ProductId);
-
-            if (cartItem == null)
-            {
-                cartItem = new Cart
+                var productExists = await _context.Products.AnyAsync(p => p.ProductId == dto.ProductId);
+                if (!productExists)
                 {
-                    CartId = accountId,
-                    ProductId = dto.ProductId,
-                    Quantity = quantity
-                };
-                _context.Carts.Add(cartItem);
-            }
-            else
-            {
-                cartItem.Quantity += quantity;
-            }
+                    return BadRequest("Product not found");
+                }
+                int accountId = GetAccountId();
 
-            await _context.SaveChangesAsync();
-            return Ok(new { Message = "Product added to cart successfully." });
+                int quantity = dto.Quantity;
+
+                var cartItem = await _context.Carts
+                    .FirstOrDefaultAsync(c => c.CartId == accountId && c.ProductId == dto.ProductId);
+
+                if (cartItem == null)
+                {
+                    cartItem = new Cart
+                    {
+                        CartId = accountId,
+                        ProductId = dto.ProductId,
+                        Quantity = quantity
+                    };
+                    _context.Carts.Add(cartItem);
+                }
+                else
+                {
+                    cartItem.Quantity += quantity;
+                }
+
+                await _context.SaveChangesAsync();
+                return Ok(new { Message = "Product added to cart successfully." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Internal server error: " + ex.Message);
+            }
         }
 
 
@@ -95,17 +102,24 @@ namespace ElectronicStore.Api.Controllers
 
         public async Task<IActionResult> UpdateQuantity([FromBody] UpdateCartDto dto)
         {
-            int accountId = GetAccountId();
+            try
+            {
+                int accountId = GetAccountId();
 
-            var cartItem = await _context.Carts
-                .FirstOrDefaultAsync(c => c.CartId == accountId && c.ProductId == dto.ProductId);
+                var cartItem = await _context.Carts
+                    .FirstOrDefaultAsync(c => c.CartId == accountId && c.ProductId == dto.ProductId);
 
-            if (cartItem == null)
-                return NotFound(new { Message = "Product not found in your cart." });
+                if (cartItem == null)
+                    return NotFound(new { Message = "Product not found in your cart." });
 
-            cartItem.Quantity = dto.Quantity;
-            await _context.SaveChangesAsync();
-            return Ok(new { Message = "Product quantity updated successfully." });
+                cartItem.Quantity = dto.Quantity;
+                await _context.SaveChangesAsync();
+                return Ok(new { Message = "Product quantity updated successfully." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Internal server error: " + ex.Message);
+            }
         }
 
         // Remove product from cart
@@ -114,17 +128,24 @@ namespace ElectronicStore.Api.Controllers
 
         public async Task<IActionResult> RemoveFromCart(int productId)
         {
-            int accountId = GetAccountId();
+            try
+            {
+                int accountId = GetAccountId();
 
-            var cartItem = await _context.Carts
-                .FirstOrDefaultAsync(c => c.CartId == accountId && c.ProductId == productId);
+                var cartItem = await _context.Carts
+                    .FirstOrDefaultAsync(c => c.CartId == accountId && c.ProductId == productId);
 
-            if (cartItem == null)
-                return NotFound(new { Message = "Product not found in your cart." });
+                if (cartItem == null)
+                    return NotFound(new { Message = "Product not found in your cart." });
 
-            _context.Carts.Remove(cartItem);
-            await _context.SaveChangesAsync();
-            return Ok(new { Message = "Product removed from cart successfully." });
+                _context.Carts.Remove(cartItem);
+                await _context.SaveChangesAsync();
+                return Ok(new { Message = "Product removed from cart successfully." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Internal server error: " + ex.Message);
+            }
         }
 
         // Clear cart
@@ -133,12 +154,19 @@ namespace ElectronicStore.Api.Controllers
 
         public async Task<IActionResult> ClearCart()
         {
-            int accountId = GetAccountId();
+            try
+            {
+                int accountId = GetAccountId();
 
-            var cartItems = _context.Carts.Where(c => c.CartId == accountId);
-            _context.Carts.RemoveRange(cartItems);
-            await _context.SaveChangesAsync();
-            return Ok(new { Message = "All products removed from cart successfully." });
+                var cartItems = _context.Carts.Where(c => c.CartId == accountId);
+                _context.Carts.RemoveRange(cartItems);
+                await _context.SaveChangesAsync();
+                return Ok(new { Message = "All products removed from cart successfully." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Internal server error: " + ex.Message);
+            }
         }
     }
 

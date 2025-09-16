@@ -19,6 +19,8 @@ public partial class Account
 
     public int RoleId { get; set; }
 
+    public string? Avatar { get; set; }
+
     public bool IsActive { get; set; }
 
     public DateTime CreatedAt { get; set; }
@@ -31,7 +33,7 @@ public partial class Account
 
     public virtual ICollection<Cart> Carts { get; set; } = new List<Cart>();
 
-    public virtual Customer? Customer { get; set; }
+    public virtual ICollection<Customer> Customers { get; set; } = new List<Customer>();
 
     public virtual Employee? Employee { get; set; }
 

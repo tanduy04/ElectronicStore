@@ -9,6 +9,6 @@ namespace ElectronicStore.Api.Dto
         [Required(ErrorMessage = "Image is required")]
         public IFormFile CategoryImage { get; set; }
         [Required(ErrorMessage = "IsActive is required")]
-        public bool IsActive { get; set; }
+        public bool IsActive { get; set; } = true;
     }
 }

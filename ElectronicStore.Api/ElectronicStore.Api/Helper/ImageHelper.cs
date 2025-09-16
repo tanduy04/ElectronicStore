@@ -1,55 +1,58 @@
-﻿namespace ElectronicStore.Api.Helper;
+﻿using Microsoft.AspNetCore.Http;
 
-
-using System.Globalization;
-using System.Text;
-using System.Text.RegularExpressions;
-
-public static class ImageHelper
+namespace ElectronicStore.Api.Helper
 {
-
-    public static string NormalizeFileName(string input)
+    public static class ImageHelper
     {
-        if (string.IsNullOrWhiteSpace(input)) return "file";
+        private static readonly string[] AllowedExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
 
-        // To lower
-        var s = input.ToLowerInvariant();
-
-        // Remove diacritics
-        var normalized = s.Normalize(NormalizationForm.FormD);
-        var sb = new StringBuilder();
-        foreach (var c in normalized)
+        // Kiểm tra file ảnh hợp lệ
+        public static bool IsImageFile(IFormFile file)
         {
-            var cat = CharUnicodeInfo.GetUnicodeCategory(c);
-            if (cat != UnicodeCategory.NonSpacingMark)
-                sb.Append(c);
+            var extension = Path.GetExtension(file.FileName).ToLower();
+            return AllowedExtensions.Contains(extension);
         }
-        s = sb.ToString().Normalize(NormalizationForm.FormC);
 
-        // replace spaces by underscore
-        s = Regex.Replace(s, @"\s+", "_");
-
-        // remove invalid chars (keep a-z,0-9, underscore and dot)
-        s = Regex.Replace(s, @"[^a-z0-9._\-]", "");
-
-        // trim underscores/dots at ends
-        s = s.Trim('_', '.');
-
-        if (string.IsNullOrWhiteSpace(s)) s = "file";
-        return s;
-    }
-
-    public static void DeleteFileIfExists(string path)
-    {
-        try
+        // Chuẩn hóa tên file
+        public static string NormalizeFileName(string name)
         {
-            if (System.IO.File.Exists(path))
-                System.IO.File.Delete(path);
+            string invalidChars = new string(Path.GetInvalidFileNameChars());
+            foreach (var c in invalidChars)
+            {
+                name = name.Replace(c.ToString(), "_");
+            }
+            return name.Replace(" ", "_").ToLower();
         }
-        catch
+
+        // Xóa file nếu tồn tại
+        public static void DeleteFileIfExists(string folderPath, string fileName)
         {
-            // optionally log
+            if (string.IsNullOrEmpty(fileName)) return;
+
+            string fullPath = Path.Combine(folderPath, fileName);
+            if (File.Exists(fullPath))
+            {
+                File.Delete(fullPath);
+            }
+        }
+
+        // ✅ Hàm dùng chung để lưu ảnh
+        public static async Task<string> SaveImageAsync(IFormFile imageFile, string folderPath, string name)
+        {
+            if (!Directory.Exists(folderPath))
+                Directory.CreateDirectory(folderPath);
+
+            string normalized = NormalizeFileName(name);
+            string extension = Path.GetExtension(imageFile.FileName);
+            string fileName = $"{normalized}{extension}";
+
+            string fullPath = Path.Combine(folderPath, fileName);
+            using (var stream = new FileStream(fullPath, FileMode.Create))
+            {
+                await imageFile.CopyToAsync(stream);
+            }
+
+            return fileName;
         }
     }
 }
-
