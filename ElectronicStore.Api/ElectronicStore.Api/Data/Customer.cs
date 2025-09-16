@@ -9,9 +9,9 @@ public partial class Customer
 
     public int AccountId { get; set; }
 
-    public string FullName { get; set; } = null!;
+    public string? FullName { get; set; }
 
-    public int? Point { get; set; }
+    public int Point { get; set; }
 
     public string? Address { get; set; }
 

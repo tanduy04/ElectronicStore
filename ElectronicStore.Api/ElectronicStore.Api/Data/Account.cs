@@ -7,11 +7,11 @@ public partial class Account
 {
     public int AccountId { get; set; }
 
-    public string? Username { get; set; }
+    public string Username { get; set; } = null!;
 
     public string Email { get; set; } = null!;
 
-    public string? PasswordHash { get; set; }
+    public string PasswordHash { get; set; } = null!;
 
     public string? PhoneNumber { get; set; }
 

@@ -15,11 +15,11 @@ public partial class Employee
 
     public string? Address { get; set; }
 
-    public string? Position { get; set; }
+    public string Position { get; set; } = null!;
 
-    public decimal? Salary { get; set; }
+    public decimal Salary { get; set; }
 
-    public DateOnly? HireDate { get; set; }
+    public DateOnly HireDate { get; set; }
 
     public DateTime CreatedAt { get; set; }
 
