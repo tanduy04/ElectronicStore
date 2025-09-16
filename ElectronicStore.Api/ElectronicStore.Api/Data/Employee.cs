@@ -21,8 +21,6 @@ public partial class Employee
 
     public DateOnly? HireDate { get; set; }
 
-    public bool IsActive { get; set; }
-
     public DateTime CreatedAt { get; set; }
 
     public virtual Account Account { get; set; } = null!;

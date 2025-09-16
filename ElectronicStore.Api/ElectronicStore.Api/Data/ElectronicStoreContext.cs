@@ -208,7 +208,6 @@ public partial class ElectronicStoreContext : DbContext
             entity.Property(e => e.Address).HasMaxLength(500);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.FullName).HasMaxLength(200);
-            entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.Position).HasMaxLength(100);
             entity.Property(e => e.Salary).HasColumnType("decimal(18, 2)");
 

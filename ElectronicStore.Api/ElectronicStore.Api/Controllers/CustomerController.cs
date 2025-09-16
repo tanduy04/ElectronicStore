@@ -203,7 +203,8 @@ namespace ElectronicStore.Api.Controllers
                         if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
 
                         // Xóa avatar cũ
-                        if (!string.IsNullOrEmpty(account.Avatar))
+                        if (!string.IsNullOrEmpty(account.Avatar) && account.Avatar != "default-avatar.jpg")
+
                         {
                             var oldPath = Path.Combine(folder, account.Avatar);
                             ImageHelper.DeleteFileIfExists(oldPath, account.Avatar);
