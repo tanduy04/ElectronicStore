@@ -94,7 +94,7 @@ public partial class ElectronicStoreContext : DbContext
 
         modelBuilder.Entity<AccountLoginProvider>(entity =>
         {
-            entity.HasKey(e => e.ProviderId).HasName("PK__AccountL__B54C689DB2ACB470");
+            entity.HasKey(e => e.ProviderId).HasName("PK__AccountL__B54C689D8AAB858A");
 
             entity.ToTable("AccountLoginProvider");
 
@@ -117,7 +117,7 @@ public partial class ElectronicStoreContext : DbContext
 
         modelBuilder.Entity<AccountToken>(entity =>
         {
-            entity.HasKey(e => e.TokenId).HasName("PK__AccountT__658FEE8AAE6E3F03");
+            entity.HasKey(e => e.TokenId).HasName("PK__AccountT__658FEE8AF37F8F96");
 
             entity.HasIndex(e => e.RefreshToken, "UQ_Token_RefreshToken").IsUnique();
 
@@ -135,7 +135,7 @@ public partial class ElectronicStoreContext : DbContext
 
         modelBuilder.Entity<Banner>(entity =>
         {
-            entity.HasKey(e => e.BannerId).HasName("PK__Banners__32E86A318CD28B8A");
+            entity.HasKey(e => e.BannerId).HasName("PK__Banners__32E86A31201E0454");
 
             entity.Property(e => e.BannerId).HasColumnName("BannerID");
             entity.Property(e => e.BannerName).HasMaxLength(200);
@@ -219,7 +219,7 @@ public partial class ElectronicStoreContext : DbContext
 
         modelBuilder.Entity<FavoriteProduct>(entity =>
         {
-            entity.HasKey(e => e.FavoriteId).HasName("PK__Favorite__CE74FAF5E90A16E2");
+            entity.HasKey(e => e.FavoriteId).HasName("PK__Favorite__CE74FAF569CE0FC7");
 
             entity.HasIndex(e => new { e.AccountId, e.ProductId }, "UQ_Favorite_Account_Product").IsUnique();
 
@@ -241,11 +241,11 @@ public partial class ElectronicStoreContext : DbContext
 
         modelBuilder.Entity<Import>(entity =>
         {
-            entity.HasKey(e => e.ImportId).HasName("PK__Imports__8697678A8E61E63D");
+            entity.HasKey(e => e.ImportId).HasName("PK__Imports__8697678A003ABEFC");
 
             entity.HasIndex(e => e.ImportCode, "IX_Imports_ImportCode");
 
-            entity.HasIndex(e => e.ImportCode, "UQ__Imports__43999138A94C5A69").IsUnique();
+            entity.HasIndex(e => e.ImportCode, "UQ__Imports__43999138C02200B8").IsUnique();
 
             entity.Property(e => e.ImportId).HasColumnName("ImportID");
             entity.Property(e => e.EmployeeId).HasColumnName("EmployeeID");
@@ -262,7 +262,7 @@ public partial class ElectronicStoreContext : DbContext
 
         modelBuilder.Entity<ImportDetail>(entity =>
         {
-            entity.HasKey(e => e.ImportDetailId).HasName("PK__ImportDe__CDFBBA5169B79A97");
+            entity.HasKey(e => e.ImportDetailId).HasName("PK__ImportDe__CDFBBA515B884B36");
 
             entity.Property(e => e.ImportDetailId).HasColumnName("ImportDetailID");
             entity.Property(e => e.ImportId).HasColumnName("ImportID");
@@ -286,11 +286,11 @@ public partial class ElectronicStoreContext : DbContext
 
         modelBuilder.Entity<Order>(entity =>
         {
-            entity.HasKey(e => e.OrderId).HasName("PK__Orders__C3905BAF982BCA96");
+            entity.HasKey(e => e.OrderId).HasName("PK__Orders__C3905BAF199D1041");
 
             entity.HasIndex(e => e.OrderCode, "IX_Orders_OrderCode");
 
-            entity.HasIndex(e => e.OrderCode, "UQ__Orders__999B5229927799C2").IsUnique();
+            entity.HasIndex(e => e.OrderCode, "UQ__Orders__999B5229D6034ED3").IsUnique();
 
             entity.Property(e => e.OrderId).HasColumnName("OrderID");
             entity.Property(e => e.CustomerId).HasColumnName("CustomerID");
@@ -322,7 +322,7 @@ public partial class ElectronicStoreContext : DbContext
 
         modelBuilder.Entity<OrderDetail>(entity =>
         {
-            entity.HasKey(e => e.OrderDetailId).HasName("PK__OrderDet__D3B9D30CC5FA0339");
+            entity.HasKey(e => e.OrderDetailId).HasName("PK__OrderDet__D3B9D30CEC1AE971");
 
             entity.Property(e => e.OrderDetailId).HasColumnName("OrderDetailID");
             entity.Property(e => e.OrderId).HasColumnName("OrderID");
@@ -346,7 +346,7 @@ public partial class ElectronicStoreContext : DbContext
 
         modelBuilder.Entity<Payment>(entity =>
         {
-            entity.HasKey(e => e.PaymentId).HasName("PK__Payments__9B556A586FE0C5AC");
+            entity.HasKey(e => e.PaymentId).HasName("PK__Payments__9B556A58C70E37DE");
 
             entity.Property(e => e.PaymentId).HasColumnName("PaymentID");
             entity.Property(e => e.AccountId).HasColumnName("AccountID");
@@ -375,12 +375,14 @@ public partial class ElectronicStoreContext : DbContext
             entity.Property(e => e.ProductId).HasColumnName("ProductID");
             entity.Property(e => e.BrandId).HasColumnName("BrandID");
             entity.Property(e => e.CategoryId).HasColumnName("CategoryID");
+            entity.Property(e => e.CostPrice).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.DiscountPrice).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.IsActive).HasDefaultValue(true);
-            entity.Property(e => e.Price)
+            entity.Property(e => e.ProductName).HasMaxLength(300);
+            entity.Property(e => e.SellPrice)
                 .HasDefaultValue(0m)
                 .HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.ProductName).HasMaxLength(300);
             entity.Property(e => e.StockQuantity).HasDefaultValue(0);
 
             entity.HasOne(d => d.Brand).WithMany(p => p.Products)
@@ -408,7 +410,7 @@ public partial class ElectronicStoreContext : DbContext
 
         modelBuilder.Entity<ProductReview>(entity =>
         {
-            entity.HasKey(e => e.ReviewId).HasName("PK__ProductR__74BC79AE5237CA98");
+            entity.HasKey(e => e.ReviewId).HasName("PK__ProductR__74BC79AE15776CF2");
 
             entity.Property(e => e.ReviewId).HasColumnName("ReviewID");
             entity.Property(e => e.AccountId).HasColumnName("AccountID");
@@ -430,7 +432,7 @@ public partial class ElectronicStoreContext : DbContext
 
         modelBuilder.Entity<Role>(entity =>
         {
-            entity.HasKey(e => e.RoleId).HasName("PK__Roles__8AFACE3A53AEBF13");
+            entity.HasKey(e => e.RoleId).HasName("PK__Roles__8AFACE3A3157FDEA");
 
             entity.Property(e => e.RoleId).HasColumnName("RoleID");
             entity.Property(e => e.Description).HasMaxLength(255);
@@ -439,11 +441,11 @@ public partial class ElectronicStoreContext : DbContext
 
         modelBuilder.Entity<Voucher>(entity =>
         {
-            entity.HasKey(e => e.VoucherId).HasName("PK__Voucher__3AEE79C180849CB1");
+            entity.HasKey(e => e.VoucherId).HasName("PK__Voucher__3AEE79C1352A66CA");
 
             entity.ToTable("Voucher");
 
-            entity.HasIndex(e => e.VoucherCode, "UQ__Voucher__7F0ABCA9A17296E8").IsUnique();
+            entity.HasIndex(e => e.VoucherCode, "UQ__Voucher__7F0ABCA9AD400CC0").IsUnique();
 
             entity.Property(e => e.VoucherId).HasColumnName("VoucherID");
             entity.Property(e => e.DiscountType).HasMaxLength(50);

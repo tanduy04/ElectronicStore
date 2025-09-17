@@ -44,7 +44,7 @@ namespace ElectronicStore.Api.Controllers
                 c.CartId,
                 c.ProductId,
                 c.Product.ProductName,
-                c.Product.Price,
+                c.Product.DiscountPrice,
                 c.Quantity
             });
 

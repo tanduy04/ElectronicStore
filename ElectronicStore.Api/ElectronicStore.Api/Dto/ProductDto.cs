@@ -15,10 +15,17 @@ namespace ElectronicStore.Api.Dto
         [Required(ErrorMessage = "Maintenance is required")]
 
         public int Maintenance { get; set; }
-        [Required(ErrorMessage = "Price is required")]
+        [Required(ErrorMessage = "CostPrice is required")]
 
         [Range(0, double.MaxValue)]
-        public decimal Price { get; set; }
+        public decimal CostPrice { get; set; }
+
+        [Range(0, double.MaxValue)]
+        public decimal DiscountPrice { get; set; }
+        [Required(ErrorMessage = "SellPrice is required")]
+
+        [Range(0, double.MaxValue)]
+        public decimal SellPrice { get; set; }
         [Required(ErrorMessage = "StockQuantity is required")]
 
         [Range(0, int.MaxValue)]
