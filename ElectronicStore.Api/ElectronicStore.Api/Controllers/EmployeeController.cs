@@ -33,6 +33,7 @@ namespace ElectronicStore.Api.Controllers
 
         private object MapEmployeeToDto(Employee c)
         {
+            var baseUrl = $"{Request.Scheme}://{Request.Host}/";
             return new
             {
                 c.EmployeeId,
@@ -45,7 +46,7 @@ namespace ElectronicStore.Api.Controllers
                 c.Account.PhoneNumber,
                 c.Account.Email,
                 c.Account.IsActive,
-                c.Account.Avatar,
+                ImageUrl = $"{baseUrl}{_config["ImageSettings:AccountPath"]}{c.Account.Avatar}",
             };
         }
         [HttpGet]
@@ -80,13 +81,13 @@ namespace ElectronicStore.Api.Controllers
             }
         }
 
-        // GET: api/customers/{id}
         [HttpGet("{id}")]
         [Authorize(Roles = "Admin,Employee")]
         public async Task<IActionResult> GetById(int id)
         {
             try
             {
+                var baseUrl = $"{Request.Scheme}://{Request.Host}/";
                 var employee = await _context.Employees
                 .Include(c => c.Account)
                 .Where(c => c.EmployeeId == id)
@@ -102,6 +103,7 @@ namespace ElectronicStore.Api.Controllers
                     c.Account.PhoneNumber,
                     c.Account.Email,
                     c.Account.IsActive,
+                    ImageUrl = $"{baseUrl}{_config["ImageSettings:AccountPath"]}{c.Account.Avatar}",
                 })
                 .FirstOrDefaultAsync();
 
@@ -113,7 +115,6 @@ namespace ElectronicStore.Api.Controllers
                 return StatusCode(500, "Internal server error: " + ex.Message);
             }
         }
-        // GET: api/customers/search?phone=0123456789
         [HttpGet("search")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> SearchByPhone(string phone)
@@ -138,7 +139,6 @@ namespace ElectronicStore.Api.Controllers
             }
         }
 
-        // PUT: api/customers/{id}
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(int id, [FromForm] EmployeeDto dto)
@@ -146,13 +146,18 @@ namespace ElectronicStore.Api.Controllers
             try
             {
                 if (!ModelState.IsValid) return BadRequest(ModelState);
-                if (_context.Accounts.Any(a => a.Email == dto.Email))
-                    return BadRequest("Email already exists");
-                if (_context.Accounts.Any(a => a.PhoneNumber == dto.PhoneNumber))
-                    return BadRequest("Phone number already exists");
+
                 var employee = await _context.Employees.FindAsync(id);
                 if (employee == null) return NotFound("Employee not found.");
+
                 var account = await _context.Accounts.FirstOrDefaultAsync(a => a.AccountId == employee.AccountId);
+                if (account == null) return NotFound("Account not found.");
+
+                // Kiểm tra email và số điện thoại hợp lý hơn
+                if (_context.Accounts.Any(a => a.Email == dto.Email && a.AccountId != account.AccountId))
+                    return BadRequest("Email already exists");
+                if (_context.Accounts.Any(a => a.PhoneNumber == dto.PhoneNumber && a.AccountId != account.AccountId))
+                    return BadRequest("Phone number already exists");
                 employee.FullName = dto.FullName;
                 employee.Address = dto.Address;
                 employee.Position = dto.Position;
@@ -230,21 +235,78 @@ namespace ElectronicStore.Api.Controllers
             }
 
         }
+        //[HttpGet]
+        //[Route("CreateAdmin")]
+        //public async Task<IActionResult> CreateAdmin()
+        //{
+        //    try
+        //    {
+                
+                
+        //        var account = new Account
+        //        {
+        //            Username = "admin",
+        //            Email = "admin@gmail.com",
+        //            PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin"),
+        //            PhoneNumber = "091199888",
+        //            RoleId = 1,
+        //            IsActive = true,
+        //            Avatar = "default-avatar.jpg",
+        //            CreatedAt = DateTime.Now,
+        //            UpdatedAt = DateTime.Now
+        //        };
+
+        //        _context.Accounts.Add(account);
+        //        await _context.SaveChangesAsync();
+
+
+        //        var employee = new Employee
+        //        {
+        //            AccountId = account.AccountId,
+        //            FullName = "Admin",
+        //            BirthDate = DateOnly.Parse("1990-12-09"),
+        //            Address = "TPHCM",
+        //            Position = "Admin",
+        //            Salary = 0,
+        //            HireDate = DateOnly.Parse("2000-01-01"),
+        //            CreatedAt = DateTime.Now
+        //        };
+
+        //        _context.Employees.Add(employee);
+        //        await _context.SaveChangesAsync();
+
+        //        return Ok(new { message = "Add new employee success", EmployeeID = employee.EmployeeId });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500, "Internal server error: " + ex.Message);
+        //    }
+
+        //}
         [HttpPut]
         [Route("EditMyProfile")]
-        [Authorize(Roles = "Employee")]
+        [Authorize(Roles = "Employee,Admin")]
         public async Task<IActionResult> Update([FromForm] EmployeeProfileDto dto)
         {
             try
             {
                 if (!ModelState.IsValid) return BadRequest(ModelState);
-                if (_context.Accounts.Any(a => a.Email == dto.Email))
-                    return BadRequest("Email already exists");
-                if (_context.Accounts.Any(a => a.PhoneNumber == dto.PhoneNumber))
-                    return BadRequest("Phone number already exists");
-                var employee = await _context.Employees.FindAsync(User.IsInRole);
+
+
+
+                var account = await _context.Accounts.FirstOrDefaultAsync(a => a.AccountId == int.Parse(User.FindFirst("AccountID").Value));
+                if (account == null) return NotFound("Account not found.");
+                var employee = await _context.Employees.FindAsync(account.AccountId);
                 if (employee == null) return NotFound("Employee not found.");
-                var account = await _context.Accounts.FirstOrDefaultAsync(a => a.AccountId == employee.AccountId);
+
+
+
+                // Kiểm tra email và số điện thoại hợp lý hơn
+                if (_context.Accounts.Any(a => a.Email == dto.Email && a.AccountId != account.AccountId))
+                    return BadRequest("Email already exists");
+                if (_context.Accounts.Any(a => a.PhoneNumber == dto.PhoneNumber && a.AccountId != account.AccountId))
+                    return BadRequest("Phone number already exists");
+
                 employee.FullName = dto.FullName;
                 employee.Address = dto.Address;
                 employee.BirthDate = dto.BirthDate;

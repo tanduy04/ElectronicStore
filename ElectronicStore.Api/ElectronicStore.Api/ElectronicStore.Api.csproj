@@ -27,6 +27,7 @@
     <Folder Include="Data\" />
     <Folder Include="wwwroot\Image\Category\" />
     <Folder Include="wwwroot\Image\AvatarAccount\" />
+    <Folder Include="wwwroot\Image\Product\" />
   </ItemGroup>
 
 </Project>

@@ -1,6 +1,7 @@
 ﻿using ElectronicStore.Api.Data;
 using ElectronicStore.Api.Dto;
 using ElectronicStore.Api.Helper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -96,6 +97,7 @@ namespace ElectronicStore.Api.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin,Employee")]
         public async Task<IActionResult> Create([FromForm] BannerDto dto)
         {
             try
@@ -123,6 +125,7 @@ namespace ElectronicStore.Api.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,Employee")]
         public async Task<IActionResult> Update(int id, [FromForm] BannerDto dto)
         {
             try
@@ -162,6 +165,7 @@ namespace ElectronicStore.Api.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,Employee")]
         public async Task<IActionResult> Delete(int id)
         {
             try

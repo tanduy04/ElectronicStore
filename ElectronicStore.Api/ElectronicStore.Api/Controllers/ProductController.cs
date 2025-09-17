@@ -31,7 +31,7 @@ namespace ElectronicStore.Api.Controllers
 
         // GET: api/products/GetAll
         [HttpGet("GetAll")]
-        public async Task<IActionResult> GetAll(int? categoryId, string? sortBy = "CreatedAt", string? sortOrder = "desc", int pageNumber = 1, int pageSize = 12)
+        public async Task<IActionResult> GetAll(int? categoryId, int? BrandId, string? sortBy = "CreatedAt", string? sortOrder = "desc", int pageNumber = 1, int pageSize = 12)
         {
             try
             {
@@ -39,6 +39,8 @@ namespace ElectronicStore.Api.Controllers
 
                 if (categoryId.HasValue)
                     query = query.Where(p => p.CategoryId == categoryId.Value);
+                if (BrandId.HasValue)
+                    query = query.Where(p => p.BrandId == BrandId.Value);
 
                 var result = await GetPagedProducts(query, sortBy, sortOrder, pageNumber, pageSize);
                 return Ok(result);
@@ -72,7 +74,7 @@ namespace ElectronicStore.Api.Controllers
         {
             try
             {
-                var product = await _context.Products.Include(p => p.ProductImages).FirstOrDefaultAsync(p => p.ProductId == id);
+                var product = await _context.Products.Include(p => p.ProductImages).Include(p => p.Brand).Include(p => p.Category).FirstOrDefaultAsync(p => p.ProductId == id);
                 if (product == null) return NotFound("Product not found.");
 
                 var baseUrl = GetBaseUrl();
@@ -84,6 +86,10 @@ namespace ElectronicStore.Api.Controllers
                     product.Description,
                     product.Price,
                     product.StockQuantity,
+                    product.Brand.BrandId,
+                    product.Brand.BrandName,
+                    product.Category.CategoryId,
+                    product.Category.CategoryName,
                     product.IsActive,
                     product.ManufactureYear,
                     MainImage = product.ProductImages.FirstOrDefault(i => i.ImageMain) is ProductImage m ? $"{baseUrl}{_config["ImageSettings:ProductPath"]}{m.UrlProductImage}" : null,
@@ -254,7 +260,7 @@ namespace ElectronicStore.Api.Controllers
             };
 
             var totalItems = await query.CountAsync();
-            var products = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).Include(p => p.ProductImages).ToListAsync();
+            var products = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).Include(p => p.ProductImages).Include(p => p.Category).Include(p=> p.Brand).ToListAsync();
             var baseUrl = GetBaseUrl();
 
             var result = products.Select(p => new
@@ -265,6 +271,10 @@ namespace ElectronicStore.Api.Controllers
                 p.Price,
                 p.StockQuantity,
                 p.IsActive,
+                p.Brand.BrandId,
+                p.Brand.BrandName,
+                p.Category.CategoryId,
+                p.Category.CategoryName,
                 p.ManufactureYear,
                 MainImage = p.ProductImages.FirstOrDefault(i => i.ImageMain) is ProductImage m ? $"{baseUrl}{_config["ImageSettings:ProductPath"]}{m.UrlProductImage}" : null,
                 SubImages = p.ProductImages.Where(i => !i.ImageMain).Select(i => $"{baseUrl}{_config["ImageSettings:ProductPath"]}{i.UrlProductImage}").ToList(),

@@ -53,14 +53,13 @@ namespace ElectronicStore.Api.Controllers
 
         // Add product to cart
         [HttpPost("add")]
-        [Authorize]
 
         public async Task<IActionResult> AddToCart([FromBody] AddToCartDto dto)
         {
             try
             {
-                var productExists = await _context.Products.AnyAsync(p => p.ProductId == dto.ProductId);
-                if (!productExists)
+                var productExists = await _context.Products.FirstOrDefaultAsync(p => p.ProductId == dto.ProductId);
+                if (productExists == null)
                 {
                     return BadRequest("Product not found");
                 }
@@ -73,17 +72,29 @@ namespace ElectronicStore.Api.Controllers
 
                 if (cartItem == null)
                 {
-                    cartItem = new Cart
+                    if (productExists.StockQuantity >= quantity)
                     {
-                        CartId = accountId,
-                        ProductId = dto.ProductId,
-                        Quantity = quantity
-                    };
-                    _context.Carts.Add(cartItem);
+                        cartItem = new Cart
+                        {
+                            CartId = accountId,
+                            ProductId = dto.ProductId,
+                            Quantity = quantity
+                        };
+                        _context.Carts.Add(cartItem);
+                    }
+                    else
+                    {
+                        return BadRequest("insufficient inventory");
+                    }
                 }
                 else
                 {
-                    cartItem.Quantity += quantity;
+                    if (productExists.StockQuantity >= (cartItem.Quantity + quantity))
+                        cartItem.Quantity += quantity;
+                    else
+                    {
+                        return BadRequest("insufficient inventory");
+                    }
                 }
 
                 await _context.SaveChangesAsync();
@@ -98,7 +109,6 @@ namespace ElectronicStore.Api.Controllers
 
         // Update product quantity
         [HttpPut("update")]
-        [Authorize]
 
         public async Task<IActionResult> UpdateQuantity([FromBody] UpdateCartDto dto)
         {
@@ -124,7 +134,6 @@ namespace ElectronicStore.Api.Controllers
 
         // Remove product from cart
         [HttpDelete("remove/{productId}")]
-        [Authorize]
 
         public async Task<IActionResult> RemoveFromCart(int productId)
         {
@@ -168,6 +177,7 @@ namespace ElectronicStore.Api.Controllers
                 return StatusCode(500, "Internal server error: " + ex.Message);
             }
         }
+       
     }
 
 }

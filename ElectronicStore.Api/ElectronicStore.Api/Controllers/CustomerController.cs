@@ -35,10 +35,10 @@ namespace ElectronicStore.Api.Controllers
                 return Path.Combine(_env.WebRootPath ?? "wwwroot", relative);
             }
 
-            private string GetBaseUrl() => $"{Request.Scheme}://{Request.Host}/";
-
             private object MapCustomerToDto(Customer c)
             {
+                var baseUrl = $"{Request.Scheme}://{Request.Host}/";
+
                 return new
                 {
                     c.CustomerId,
@@ -49,7 +49,8 @@ namespace ElectronicStore.Api.Controllers
                     c.Account.PhoneNumber,
                     c.Account.Email,
                     c.Account.IsActive,
-                    c.Account.Avatar,
+                    ImageUrl = $"{baseUrl}{_config["ImageSettings:AccountPath"]}{c.Account.Avatar}",
+
                 };
             }
             [HttpGet]
@@ -86,11 +87,13 @@ namespace ElectronicStore.Api.Controllers
 
             // GET: api/customers/{id}
             [HttpGet("{id}")]
-            [Authorize(Roles = "Admin,Employee,Customer")]
+            [Authorize]
             public async Task<IActionResult> GetById(int id)
             {
                 try
                 {
+                    var baseUrl = $"{Request.Scheme}://{Request.Host}/";
+
                     var customer = await _context.Customers
                     .Include(c => c.Account)
                     .Where(c => c.CustomerId == id)
@@ -105,10 +108,21 @@ namespace ElectronicStore.Api.Controllers
                         c.Account.Email,
                         c.Point,
                         c.Account.IsActive,
+                        ImageUrl = $"{baseUrl}{_config["ImageSettings:AccountPath"]}{c.Account.Avatar}",
+
                     })
                     .FirstOrDefaultAsync();
 
                     if (customer == null) return NotFound("Customer not found.");
+                    if(User.IsInRole("Customer"))
+                    {
+                        var accountId = int.Parse(User.FindFirst("AccountID").Value);
+                        var customerOfUser = await _context.Customers.FirstOrDefaultAsync(c => c.AccountId == accountId);
+                        if (customerOfUser == null || customerOfUser.CustomerId != id)
+                        {
+                            return BadRequest("You are not authorized to access this customer's information.");
+                        }
+                    }
                     return Ok(customer);
                 }
                 catch (Exception ex)
@@ -150,13 +164,18 @@ namespace ElectronicStore.Api.Controllers
                 try
                 {
                     if (!ModelState.IsValid) return BadRequest(ModelState);
-                    if (_context.Accounts.Any(a => a.Email == dto.Email))
-                        return BadRequest("Email already exists");
-                    if (_context.Accounts.Any(a => a.PhoneNumber == dto.PhoneNumber))
-                        return BadRequest("Phone number already exists");
+
                     var customer = await _context.Customers.FindAsync(id);
                     if (customer == null) return NotFound("Customer not found.");
+
                     var account = await _context.Accounts.FirstOrDefaultAsync(a => a.AccountId == customer.AccountId);
+                    if (account == null) return NotFound("Account not found.");
+
+                    // Kiểm tra email và số điện thoại hợp lý hơn
+                    if (_context.Accounts.Any(a => a.Email == dto.Email && a.AccountId != account.AccountId))
+                        return BadRequest("Email already exists");
+                    if (_context.Accounts.Any(a => a.PhoneNumber == dto.PhoneNumber && a.AccountId != account.AccountId))
+                        return BadRequest("Phone number already exists");
                     customer.FullName = dto.FullName;
                     account.Email = dto.Email;
                     account.PhoneNumber = dto.PhoneNumber;
@@ -181,13 +200,18 @@ namespace ElectronicStore.Api.Controllers
                 try
                 {
                     if (!ModelState.IsValid) return BadRequest(ModelState);
-                    if (_context.Accounts.Any(a => a.Email == dto.Email))
-                        return BadRequest("Email already exists");
-                    if (_context.Accounts.Any(a => a.PhoneNumber == dto.PhoneNumber))
-                        return BadRequest("Phone number already exists");
-                    var customer = await _context.Customers.FindAsync(User.IsInRole);
+
+                    
+
+                    var account = await _context.Accounts.FirstOrDefaultAsync(a => a.AccountId == int.Parse(User.FindFirst("AccountID").Value));
+                    if (account == null) return NotFound("Account not found.");
+                    var customer = await _context.Customers.FindAsync(account.AccountId);
                     if (customer == null) return NotFound("Customer not found.");
-                    var account = await _context.Accounts.FirstOrDefaultAsync(a => a.AccountId == customer.AccountId);
+                    // Kiểm tra email và số điện thoại hợp lý hơn
+                    if (_context.Accounts.Any(a => a.Email == dto.Email && a.AccountId != account.AccountId))
+                        return BadRequest("Email already exists");
+                    if (_context.Accounts.Any(a => a.PhoneNumber == dto.PhoneNumber && a.AccountId != account.AccountId))
+                        return BadRequest("Phone number already exists");
                     customer.FullName = dto.FullName;
                     account.Email = dto.Email;
                     account.PhoneNumber = dto.PhoneNumber;

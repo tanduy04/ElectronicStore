@@ -21,7 +21,6 @@ namespace ElectronicStore.Api.Controllers
             _config = config;
             _context = context;
         }
-
         [HttpGet]
         public IActionResult GetAll()
         {

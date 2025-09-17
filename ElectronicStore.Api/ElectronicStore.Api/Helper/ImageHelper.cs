@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
+using System.Globalization;
+using System.Text;
 
 namespace ElectronicStore.Api.Helper
 {
@@ -13,15 +15,35 @@ namespace ElectronicStore.Api.Helper
             return AllowedExtensions.Contains(extension);
         }
 
-        // Chuẩn hóa tên file
+        // Bỏ dấu và chuẩn hóa tên file
         public static string NormalizeFileName(string name)
         {
+            name = RemoveDiacritics(name);
+
             string invalidChars = new string(Path.GetInvalidFileNameChars());
             foreach (var c in invalidChars)
             {
                 name = name.Replace(c.ToString(), "_");
             }
+
             return name.Replace(" ", "_").ToLower();
+        }
+
+        private static string RemoveDiacritics(string text)
+        {
+            var normalizedString = text.Normalize(NormalizationForm.FormD);
+            var stringBuilder = new StringBuilder();
+
+            foreach (var c in normalizedString)
+            {
+                var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
+                if (unicodeCategory != UnicodeCategory.NonSpacingMark)
+                {
+                    stringBuilder.Append(c);
+                }
+            }
+
+            return stringBuilder.ToString().Normalize(NormalizationForm.FormC);
         }
 
         // Xóa file nếu tồn tại
@@ -36,7 +58,7 @@ namespace ElectronicStore.Api.Helper
             }
         }
 
-        // ✅ Hàm dùng chung để lưu ảnh
+        // Lưu ảnh, tránh trùng tên file
         public static async Task<string> SaveImageAsync(IFormFile imageFile, string folderPath, string name)
         {
             if (!Directory.Exists(folderPath))
@@ -47,7 +69,8 @@ namespace ElectronicStore.Api.Helper
             string fileName = $"{normalized}{extension}";
 
             string fullPath = Path.Combine(folderPath, fileName);
-            using (var stream = new FileStream(fullPath, FileMode.Create))
+
+            using (var stream = new FileStream(fullPath, FileMode.Create, FileAccess.Write, FileShare.None))
             {
                 await imageFile.CopyToAsync(stream);
             }
