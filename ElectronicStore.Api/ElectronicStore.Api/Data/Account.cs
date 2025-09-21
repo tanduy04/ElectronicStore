@@ -13,8 +13,6 @@ public partial class Account
 
     public string PasswordHash { get; set; } = null!;
 
-    public string? PhoneNumber { get; set; }
-
     public string LoginType { get; set; } = null!;
 
     public int RoleId { get; set; }

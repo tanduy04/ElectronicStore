@@ -43,7 +43,7 @@ namespace ElectronicStore.Api.Controllers
                 c.Salary,
                 c.HireDate,
                 c.BirthDate,
-                c.Account.PhoneNumber,
+                c.Phone,
                 c.Account.Email,
                 c.Account.IsActive,
                 ImageUrl = $"{baseUrl}{_config["ImageSettings:AccountPath"]}{c.Account.Avatar}",
@@ -100,7 +100,7 @@ namespace ElectronicStore.Api.Controllers
                     c.Salary,
                     c.HireDate,
                     c.BirthDate,
-                    c.Account.PhoneNumber,
+                    c.Phone,
                     c.Account.Email,
                     c.Account.IsActive,
                     ImageUrl = $"{baseUrl}{_config["ImageSettings:AccountPath"]}{c.Account.Avatar}",
@@ -126,7 +126,7 @@ namespace ElectronicStore.Api.Controllers
 
                 var employees = await _context.Employees
                     .Include(c => c.Account)
-                    .Where(c => c.Account.PhoneNumber == phone)
+                    .Where(c => c.Phone == phone)
                     .ToListAsync();
 
                 if (!employees.Any()) return NotFound("No employees found with this phone number.");
@@ -153,20 +153,19 @@ namespace ElectronicStore.Api.Controllers
                 var account = await _context.Accounts.FirstOrDefaultAsync(a => a.AccountId == employee.AccountId);
                 if (account == null) return NotFound("Account not found.");
 
-                // Kiểm tra email và số điện thoại hợp lý hơn
                 if (_context.Accounts.Any(a => a.Email == dto.Email && a.AccountId != account.AccountId))
                     return BadRequest("Email already exists");
-                if (_context.Accounts.Any(a => a.PhoneNumber == dto.PhoneNumber && a.AccountId != account.AccountId))
+                if (_context.Employees.Any(a => a.Phone == dto.PhoneNumber && a.EmployeeId != employee.EmployeeId))
                     return BadRequest("Phone number already exists");
                 employee.FullName = dto.FullName;
                 employee.Address = dto.Address;
                 employee.Position = dto.Position;
                 employee.Salary = dto.Salary;
                 employee.HireDate = dto.HireDate;
+                employee.Phone = dto.PhoneNumber;
                 account.IsActive = dto.IsActive;
                 account.UpdatedAt = DateTime.Now;
                 account.Email = dto.Email;
-                account.PhoneNumber = dto.PhoneNumber;
 
                 _context.Accounts.Update(account);
                 _context.Employees.Update(employee);
@@ -184,12 +183,10 @@ namespace ElectronicStore.Api.Controllers
         {
             try
             {
-                if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
                 if (!ModelState.IsValid) return BadRequest(ModelState);
                 if (_context.Accounts.Any(a => a.Email == dto.Email))
                     return BadRequest("Email already exists");
-                if (_context.Accounts.Any(a => a.PhoneNumber == dto.PhoneNumber))
+                if (_context.Employees.Any(a => a.Phone == dto.PhoneNumber))
                     return BadRequest("Phone number already exists");
                 var role = await _context.Roles.FirstOrDefaultAsync(s => s.RoleName == "Employee");
                 if (role == null)
@@ -200,7 +197,6 @@ namespace ElectronicStore.Api.Controllers
                     Username = dto.Username,
                     Email = dto.Email,
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Username),
-                    PhoneNumber = dto.PhoneNumber,
                     RoleId = roleId,
                     IsActive = true,
                     Avatar = "default-avatar.jpg",
@@ -219,6 +215,7 @@ namespace ElectronicStore.Api.Controllers
                     BirthDate = dto.BirthDate,
                     Address = dto.Address,
                     Position = dto.Position,
+                    Phone = dto.PhoneNumber,
                     Salary = dto.Salary,
                     HireDate = dto.HireDate,
                     CreatedAt = DateTime.Now
@@ -304,14 +301,14 @@ namespace ElectronicStore.Api.Controllers
                 // Kiểm tra email và số điện thoại hợp lý hơn
                 if (_context.Accounts.Any(a => a.Email == dto.Email && a.AccountId != account.AccountId))
                     return BadRequest("Email already exists");
-                if (_context.Accounts.Any(a => a.PhoneNumber == dto.PhoneNumber && a.AccountId != account.AccountId))
+                if (_context.Employees.Any(a => a.Phone == dto.PhoneNumber && a.EmployeeId != employee.EmployeeId))
                     return BadRequest("Phone number already exists");
 
                 employee.FullName = dto.FullName;
                 employee.Address = dto.Address;
                 employee.BirthDate = dto.BirthDate;
+                employee.Phone = dto.PhoneNumber;
                 account.Email = dto.Email;
-                account.PhoneNumber = dto.PhoneNumber;
                 if (dto.Avatar != null)
                 {
                     if (!ImageHelper.IsImageFile(dto.Avatar))

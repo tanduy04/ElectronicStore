@@ -39,7 +39,7 @@ namespace ElectronicStore.Api.Controllers
             {
                 if (_db.Accounts.Any(a => a.Email == dto.Email))
                     return BadRequest("Email already exists");
-                if (_db.Accounts.Any(a => a.PhoneNumber == dto.PhoneNumber))
+                if (_db.Customers.Any(a => a.Phone == dto.PhoneNumber))
                     return BadRequest("Phone number already exists");
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
@@ -51,7 +51,6 @@ namespace ElectronicStore.Api.Controllers
                     Username = dto.Username,
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
                     RoleId = role_custommer.RoleId,
-                    PhoneNumber = dto.PhoneNumber,
                     IsActive = true,
                     Avatar = "default-avatar.jpg",
                     CreatedAt = DateTime.UtcNow,
@@ -60,6 +59,7 @@ namespace ElectronicStore.Api.Controllers
                 {
                     FullName = dto.FullName,
                     AccountId = account.AccountId,
+                    Phone = dto.PhoneNumber,
                     CreatedAt = DateTime.UtcNow,
                     Point = 0
                 };

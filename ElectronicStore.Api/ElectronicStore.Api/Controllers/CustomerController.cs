@@ -46,7 +46,7 @@ namespace ElectronicStore.Api.Controllers
                     c.Address,
                     c.Gender,
                     c.BirthDate,
-                    c.Account.PhoneNumber,
+                    c.Phone,
                     c.Account.Email,
                     c.Account.IsActive,
                     ImageUrl = $"{baseUrl}{_config["ImageSettings:AccountPath"]}{c.Account.Avatar}",
@@ -104,7 +104,7 @@ namespace ElectronicStore.Api.Controllers
                         c.Address,
                         c.Gender,
                         c.BirthDate,
-                        c.Account.PhoneNumber,
+                        c.Phone,
                         c.Account.Email,
                         c.Point,
                         c.Account.IsActive,
@@ -143,7 +143,7 @@ namespace ElectronicStore.Api.Controllers
                     var customers = await _context.Customers
                         .Include(c => c.Account)
                         .ThenInclude(a => a.Role)
-                        .Where(c => c.Account.PhoneNumber == phone)
+                        .Where(c => c.Phone == phone)
                         .ToListAsync();
 
                     if (!customers.Any()) return NotFound("No customers found with this phone number.");
@@ -171,15 +171,14 @@ namespace ElectronicStore.Api.Controllers
                     var account = await _context.Accounts.FirstOrDefaultAsync(a => a.AccountId == customer.AccountId);
                     if (account == null) return NotFound("Account not found.");
 
-                    // Kiểm tra email và số điện thoại hợp lý hơn
                     if (_context.Accounts.Any(a => a.Email == dto.Email && a.AccountId != account.AccountId))
                         return BadRequest("Email already exists");
-                    if (_context.Accounts.Any(a => a.PhoneNumber == dto.PhoneNumber && a.AccountId != account.AccountId))
+                    if (_context.Customers.Any(a => a.Phone == dto.PhoneNumber && a.CustomerId != customer.CustomerId))
                         return BadRequest("Phone number already exists");
                     customer.FullName = dto.FullName;
-                    account.Email = dto.Email;
-                    account.PhoneNumber = dto.PhoneNumber;
                     customer.Address = dto.Address;
+                    customer.Phone = dto.PhoneNumber;
+                    account.Email = dto.Email;
 
                     _context.Accounts.Update(account);
                     _context.Customers.Update(customer);
@@ -207,17 +206,17 @@ namespace ElectronicStore.Api.Controllers
                     if (account == null) return NotFound("Account not found.");
                     var customer = await _context.Customers.FindAsync(account.AccountId);
                     if (customer == null) return NotFound("Customer not found.");
-                    // Kiểm tra email và số điện thoại hợp lý hơn
                     if (_context.Accounts.Any(a => a.Email == dto.Email && a.AccountId != account.AccountId))
                         return BadRequest("Email already exists");
-                    if (_context.Accounts.Any(a => a.PhoneNumber == dto.PhoneNumber && a.AccountId != account.AccountId))
+                    if (_context.Customers.Any(a => a.Phone == dto.PhoneNumber && a.CustomerId != customer.AccountId))
                         return BadRequest("Phone number already exists");
                     customer.FullName = dto.FullName;
-                    account.Email = dto.Email;
-                    account.PhoneNumber = dto.PhoneNumber;
+                    customer.Phone = dto.PhoneNumber;
                     customer.Address = dto.Address;
                     customer.BirthDate = dto.BirthDate;
                     customer.Gender = dto.Gender;
+                    account.Email = dto.Email;
+
                     if (dto.Avatar != null)
                     {
                         if (!ImageHelper.IsImageFile(dto.Avatar))

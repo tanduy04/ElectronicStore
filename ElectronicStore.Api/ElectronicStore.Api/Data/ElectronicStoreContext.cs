@@ -80,7 +80,6 @@ public partial class ElectronicStoreContext : DbContext
                 .HasMaxLength(20)
                 .HasDefaultValue("Local");
             entity.Property(e => e.PasswordHash).HasMaxLength(500);
-            entity.Property(e => e.PhoneNumber).HasMaxLength(20);
             entity.Property(e => e.RoleId)
                 .HasDefaultValue(3)
                 .HasColumnName("RoleID");
@@ -189,11 +188,13 @@ public partial class ElectronicStoreContext : DbContext
             entity.Property(e => e.Address).HasMaxLength(500);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.FullName).HasMaxLength(200);
+            entity.Property(e => e.Phone)
+                .HasMaxLength(50)
+                .IsUnicode(false);
             entity.Property(e => e.Point).HasColumnName("point");
 
             entity.HasOne(d => d.Account).WithMany(p => p.Customers)
                 .HasForeignKey(d => d.AccountId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Customers_Account");
         });
 
@@ -208,6 +209,9 @@ public partial class ElectronicStoreContext : DbContext
             entity.Property(e => e.Address).HasMaxLength(500);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.FullName).HasMaxLength(200);
+            entity.Property(e => e.Phone)
+                .HasMaxLength(10)
+                .IsUnicode(false);
             entity.Property(e => e.Position).HasMaxLength(100);
             entity.Property(e => e.Salary).HasColumnType("decimal(18, 2)");
 

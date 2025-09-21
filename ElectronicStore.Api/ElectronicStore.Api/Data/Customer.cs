@@ -7,9 +7,11 @@ public partial class Customer
 {
     public int CustomerId { get; set; }
 
-    public int AccountId { get; set; }
+    public int? AccountId { get; set; }
 
     public string? FullName { get; set; }
+
+    public string Phone { get; set; } = null!;
 
     public int Point { get; set; }
 
@@ -21,7 +23,7 @@ public partial class Customer
 
     public DateTime CreatedAt { get; set; }
 
-    public virtual Account Account { get; set; } = null!;
+    public virtual Account? Account { get; set; }
 
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 }
