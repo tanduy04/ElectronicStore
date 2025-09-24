@@ -13,7 +13,7 @@ public partial class Voucher
 
     public string? DiscountType { get; set; }
 
-    public decimal? DiscountValue { get; set; }
+    public decimal DiscountValue { get; set; }
 
     public int? Quantity { get; set; }
 
@@ -22,6 +22,4 @@ public partial class Voucher
     public DateTime? EndDate { get; set; }
 
     public bool IsActive { get; set; }
-
-    public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 }

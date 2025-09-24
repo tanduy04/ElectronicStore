@@ -21,7 +21,7 @@ namespace ElectronicStore.Api.Dto
         public decimal CostPrice { get; set; }
 
         [Range(0, double.MaxValue)]
-        public decimal DiscountPrice { get; set; }
+        public decimal OriginalPrice { get; set; }
         [Required(ErrorMessage = "SellPrice is required")]
 
         [Range(0, double.MaxValue)]

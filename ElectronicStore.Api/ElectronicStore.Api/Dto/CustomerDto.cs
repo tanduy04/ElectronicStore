@@ -5,9 +5,10 @@ namespace ElectronicStore.Api.Dto
     public class CustomerDto
     {
         [Required]
+        [EmailAddress(ErrorMessage = "Invalid email address")]
         public string Email { get; set; }
         [Required]
-
+        [RegularExpression(@"^0\d{9}$", ErrorMessage = "Phone number must be 10 digits starting with 0")]
         public string PhoneNumber { get; set; }
         [Required]
 
@@ -20,9 +21,11 @@ namespace ElectronicStore.Api.Dto
     public class CustomerProfileDto
     {
         [Required]
+        [EmailAddress(ErrorMessage = "Invalid email address")]
 
         public string Email { get; set; }
         [Required]
+        [RegularExpression(@"^0\d{9}$", ErrorMessage = "Phone number must be 10 digits starting with 0")]
 
         public string PhoneNumber { get; set; }
         [Required]

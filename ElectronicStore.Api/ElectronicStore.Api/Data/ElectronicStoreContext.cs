@@ -298,17 +298,25 @@ public partial class ElectronicStoreContext : DbContext
 
             entity.Property(e => e.OrderId).HasColumnName("OrderID");
             entity.Property(e => e.CustomerId).HasColumnName("CustomerID");
+            entity.Property(e => e.DiscountVoucher).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.EmployeeId).HasColumnName("EmployeeID");
+            entity.Property(e => e.FullName).HasMaxLength(255);
             entity.Property(e => e.Note).HasMaxLength(1000);
             entity.Property(e => e.OrderCode).HasMaxLength(50);
             entity.Property(e => e.OrderDate).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.PaymentMethod).HasMaxLength(50);
+            entity.Property(e => e.PhoneNumber)
+                .HasMaxLength(10)
+                .IsUnicode(false);
             entity.Property(e => e.ShippingAddress).HasMaxLength(500);
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
                 .HasDefaultValue("Pending");
             entity.Property(e => e.TotalAmount).HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.VoucherId).HasColumnName("VoucherID");
+            entity.Property(e => e.VoucherCode)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .IsFixedLength();
 
             entity.HasOne(d => d.Customer).WithMany(p => p.Orders)
                 .HasForeignKey(d => d.CustomerId)
@@ -318,10 +326,6 @@ public partial class ElectronicStoreContext : DbContext
             entity.HasOne(d => d.Employee).WithMany(p => p.Orders)
                 .HasForeignKey(d => d.EmployeeId)
                 .HasConstraintName("FK_Orders_Employees");
-
-            entity.HasOne(d => d.Voucher).WithMany(p => p.Orders)
-                .HasForeignKey(d => d.VoucherId)
-                .HasConstraintName("FK_Orders_VOUCHER");
         });
 
         modelBuilder.Entity<OrderDetail>(entity =>
@@ -353,16 +357,19 @@ public partial class ElectronicStoreContext : DbContext
             entity.HasKey(e => e.PaymentId).HasName("PK__Payments__9B556A58C70E37DE");
 
             entity.Property(e => e.PaymentId).HasColumnName("PaymentID");
-            entity.Property(e => e.AccountId).HasColumnName("AccountID");
             entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CustomerId).HasColumnName("CustomerID");
             entity.Property(e => e.Method).HasMaxLength(100);
             entity.Property(e => e.OrderId).HasColumnName("OrderID");
-            entity.Property(e => e.PaymentDate).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.Status)
+                .HasMaxLength(100)
+                .IsFixedLength();
             entity.Property(e => e.TransactionCode).HasMaxLength(200);
 
-            entity.HasOne(d => d.Account).WithMany(p => p.Payments)
-                .HasForeignKey(d => d.AccountId)
-                .HasConstraintName("FK_Payments_Account");
+            entity.HasOne(d => d.Customer).WithMany(p => p.Payments)
+                .HasForeignKey(d => d.CustomerId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Payments_Customer");
 
             entity.HasOne(d => d.Order).WithMany(p => p.Payments)
                 .HasForeignKey(d => d.OrderId)
@@ -381,20 +388,19 @@ public partial class ElectronicStoreContext : DbContext
             entity.Property(e => e.CategoryId).HasColumnName("CategoryID");
             entity.Property(e => e.CostPrice).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
-            entity.Property(e => e.DiscountPrice).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.OriginalPrice).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.ProductName).HasMaxLength(300);
-            entity.Property(e => e.SellPrice)
-                .HasDefaultValue(0m)
-                .HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.StockQuantity).HasDefaultValue(0);
+            entity.Property(e => e.SellPrice).HasColumnType("decimal(18, 2)");
 
             entity.HasOne(d => d.Brand).WithMany(p => p.Products)
                 .HasForeignKey(d => d.BrandId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Products_Brands");
 
             entity.HasOne(d => d.Category).WithMany(p => p.Products)
                 .HasForeignKey(d => d.CategoryId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Products_Categories");
         });
 
@@ -454,7 +460,9 @@ public partial class ElectronicStoreContext : DbContext
             entity.Property(e => e.VoucherId).HasColumnName("VoucherID");
             entity.Property(e => e.DiscountType).HasMaxLength(50);
             entity.Property(e => e.DiscountValue).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.EndDate).HasColumnType("datetime");
             entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.StartDate).HasColumnType("datetime");
             entity.Property(e => e.VoucherCode).HasMaxLength(50);
             entity.Property(e => e.VoucherName).HasMaxLength(200);
         });

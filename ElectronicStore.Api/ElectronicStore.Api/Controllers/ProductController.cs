@@ -86,7 +86,7 @@ namespace ElectronicStore.Api.Controllers
                     product.Description,
                     product.CostPrice,
                     product.SellPrice,
-                    product.DiscountPrice,
+                    product.OriginalPrice,
                     product.StockQuantity,
                     product.Brand.BrandId,
                     product.Brand.BrandName,
@@ -119,8 +119,8 @@ namespace ElectronicStore.Api.Controllers
 
                 if (dto.SubImages != null && dto.SubImages.Any(i => !ImageHelper.IsImageFile(i)))
                     return BadRequest("All sub-images must be valid image files.");
-                if (dto.DiscountPrice == null || dto.DiscountPrice<=0)
-                    dto.DiscountPrice = dto.SellPrice;
+                if (dto.OriginalPrice == null || dto.OriginalPrice<=0)
+                    dto.OriginalPrice = dto.SellPrice;
                 var product = new Product
                 {
                     ProductName = dto.ProductName,
@@ -128,7 +128,7 @@ namespace ElectronicStore.Api.Controllers
                     ConsumptionCapacity = dto.ConsumptionCapacity,
                     Maintenance = dto.Maintenance,
                     CostPrice = dto.CostPrice,
-                    DiscountPrice = dto.DiscountPrice,
+                    OriginalPrice = dto.OriginalPrice,
                     SellPrice = dto.SellPrice,
                     StockQuantity = dto.StockQuantity,
                     CategoryId = dto.CategoryID,
@@ -178,14 +178,14 @@ namespace ElectronicStore.Api.Controllers
             {
                 var product = await _context.Products.Include(p => p.ProductImages).FirstOrDefaultAsync(p => p.ProductId == id);
                 if (product == null) return NotFound("Product not found.");
-                if (dto.DiscountPrice == null || dto.DiscountPrice <= 0)
-                    dto.DiscountPrice = dto.SellPrice;
+                if (dto.OriginalPrice == null || dto.OriginalPrice <= 0)
+                    dto.OriginalPrice = dto.SellPrice;
                 product.ProductName = dto.ProductName;
                 product.Description = dto.Description;
                 product.ConsumptionCapacity = dto.ConsumptionCapacity;
                 product.Maintenance = dto.Maintenance;
                 product.CostPrice = dto.CostPrice;
-                product.DiscountPrice = dto.DiscountPrice;
+                product.OriginalPrice = dto.OriginalPrice;
                 product.SellPrice = dto.SellPrice;
                 product.StockQuantity = dto.StockQuantity;
                 product.CategoryId = dto.CategoryID;
@@ -262,7 +262,7 @@ namespace ElectronicStore.Api.Controllers
             query = sortBy?.ToLower() switch
             {
                 "name" => sortOrder == "asc" ? query.OrderBy(p => p.ProductName) : query.OrderByDescending(p => p.ProductName),
-                "price" => sortOrder == "asc" ? query.OrderBy(p => p.DiscountPrice) : query.OrderByDescending(p => p.DiscountPrice),
+                "price" => sortOrder == "asc" ? query.OrderBy(p => p.OriginalPrice) : query.OrderByDescending(p => p.OriginalPrice),
                 "createdat" => sortOrder == "asc" ? query.OrderBy(p => p.CreatedAt) : query.OrderByDescending(p => p.CreatedAt),
                 _ => query.OrderByDescending(p => p.CreatedAt)
             };
@@ -278,7 +278,7 @@ namespace ElectronicStore.Api.Controllers
                 p.Description,
                 p.CostPrice,
                 p.SellPrice,
-                p.DiscountPrice,
+                p.OriginalPrice,
                 p.StockQuantity,
                 p.IsActive,
                 p.Brand.BrandId,

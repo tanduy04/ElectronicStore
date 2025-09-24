@@ -11,35 +11,35 @@ public partial class Product
 
     public string Description { get; set; } = null!;
 
-    public int? ConsumptionCapacity { get; set; }
+    public int ConsumptionCapacity { get; set; }
 
-    public int? Maintenance { get; set; }
+    public int Maintenance { get; set; }
 
-    public decimal? CostPrice { get; set; }
+    public decimal CostPrice { get; set; }
 
-    public decimal? DiscountPrice { get; set; }
+    public decimal OriginalPrice { get; set; }
 
-    public decimal? SellPrice { get; set; }
+    public decimal SellPrice { get; set; }
 
-    public int? StockQuantity { get; set; }
+    public int StockQuantity { get; set; }
 
-    public int? CategoryId { get; set; }
+    public int CategoryId { get; set; }
 
-    public int? ManufactureYear { get; set; }
+    public int ManufactureYear { get; set; }
 
-    public int? BrandId { get; set; }
+    public int BrandId { get; set; }
 
-    public bool? IsActive { get; set; }
+    public bool IsActive { get; set; }
 
-    public DateTime? CreatedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
 
     public DateTime? UpdatedAt { get; set; }
 
-    public virtual Brand? Brand { get; set; }
+    public virtual Brand Brand { get; set; } = null!;
 
     public virtual ICollection<Cart> Carts { get; set; } = new List<Cart>();
 
-    public virtual Category? Category { get; set; }
+    public virtual Category Category { get; set; } = null!;
 
     public virtual ICollection<FavoriteProduct> FavoriteProducts { get; set; } = new List<FavoriteProduct>();
 
