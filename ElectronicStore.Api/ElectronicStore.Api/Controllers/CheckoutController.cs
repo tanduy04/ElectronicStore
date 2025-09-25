@@ -226,7 +226,9 @@ namespace ElectronicStore.Api.Controllers
                     FullName = dto.FullName,
                     ShippingAddress = dto.Address,
                     VoucherCode = dto.VoucherCode,
-                    DiscountVoucher = discountVoucher
+                    DiscountVoucher = discountVoucher,
+                    UsePoint = dto.usePoint,
+                    DiscountPoint = discountPoint
                 };
                 _context.Orders.Add(order);
                 await _context.SaveChangesAsync();
