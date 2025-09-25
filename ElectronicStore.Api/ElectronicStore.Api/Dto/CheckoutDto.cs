@@ -12,5 +12,6 @@ namespace ElectronicStore.Api.Dto
         [Required(ErrorMessage ="Address is required")]
         public string Address { get; set; }
         public string? VoucherCode { get; set; }
-    }
+        public bool? usePoint { get; set; } = false;
+        }
 }

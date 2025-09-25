@@ -298,6 +298,7 @@ public partial class ElectronicStoreContext : DbContext
 
             entity.Property(e => e.OrderId).HasColumnName("OrderID");
             entity.Property(e => e.CustomerId).HasColumnName("CustomerID");
+            entity.Property(e => e.DiscountPoint).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.DiscountVoucher).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.EmployeeId).HasColumnName("EmployeeID");
             entity.Property(e => e.FullName).HasMaxLength(255);
@@ -313,6 +314,7 @@ public partial class ElectronicStoreContext : DbContext
                 .HasMaxLength(50)
                 .HasDefaultValue("Pending");
             entity.Property(e => e.TotalAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.UsePoint).HasColumnName("usePoint");
             entity.Property(e => e.VoucherCode)
                 .HasMaxLength(10)
                 .IsUnicode(false)

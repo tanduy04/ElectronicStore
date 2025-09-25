@@ -27,6 +27,10 @@ public partial class Order
 
     public string ShippingAddress { get; set; } = null!;
 
+    public decimal? DiscountPoint { get; set; }
+
+    public bool? UsePoint { get; set; }
+
     public string? Note { get; set; }
 
     public decimal? DiscountVoucher { get; set; }

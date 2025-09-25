@@ -40,8 +40,16 @@ namespace ElectronicStore.Api.Controllers
                     .ToListAsync();
 
                 if (!cartItems.Any())
-                    return BadRequest("Giỏ hàng trống.");
-
+                    return BadRequest("Empty cart");
+                decimal discountPoint = 0;
+                if (dto.usePoint == true )
+                {
+                    var customer = await _context.Customers.FirstOrDefaultAsync(c => c.AccountId == int.Parse(accountId));
+                    if (customer == null) return BadRequest("Customer not found.");
+                    if(customer.Point <=0) return BadRequest("You have no points to use");
+                    discountPoint = customer.Point*1000;
+                    
+                }
                 // 3. Tạo OrderCode
                 string orderCode = await GenerateOrderCodeAsync();
 
@@ -65,14 +73,15 @@ namespace ElectronicStore.Api.Controllers
                         {
                             discountVoucher = voucher.DiscountValue;
                         }
-                        totalAmount -= discountVoucher;
+                        
                     }
                     else
                     {
-                        return BadRequest("Mã voucher không hợp lệ.");
+                        return BadRequest("Invalid voucher code");
                     }
                 }
-                
+                totalAmount = totalAmount - discountVoucher - discountPoint;
+
                 var order = new Order
                 {
                     OrderCode = orderCode,
@@ -85,6 +94,8 @@ namespace ElectronicStore.Api.Controllers
                     PaymentMethod = "COD",
                     VoucherCode = dto.VoucherCode,
                     DiscountVoucher = discountVoucher,
+                    UsePoint = dto.usePoint,
+                    DiscountPoint = discountPoint,
                     // lấy từ khách hàng nếu có
                     TotalAmount = totalAmount
                 };
@@ -136,7 +147,7 @@ namespace ElectronicStore.Api.Controllers
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                return Ok(new { OrderCode = orderCode, Total = totalAmount,DiscountVoucher= discountVoucher, Message = "Order successful" });
+                return Ok(new { OrderCode = orderCode, Total = totalAmount,DiscountVoucher= discountVoucher,DiscountPoint=discountPoint, Message = "Order successful" });
             }
             catch (Exception ex)
             {
@@ -162,6 +173,15 @@ namespace ElectronicStore.Api.Controllers
                     .ToListAsync();
 
                 if (!cartItems.Any()) return BadRequest("Cart is empty.");
+                decimal discountPoint = 0;
+                if (dto.usePoint == true)
+                {
+                    var customer = await _context.Customers.FirstOrDefaultAsync(c => c.AccountId == int.Parse(accountId));
+                    if (customer == null) return BadRequest("Customer not found.");
+                    if (customer.Point <= 0) return BadRequest("You have no points to use");
+                    discountPoint = customer.Point * 1000;
+
+                }
                 decimal totalAmount = cartItems.Sum(c => c.Quantity * c.Product.SellPrice);
                 decimal discountVoucher = 0;
                 if (dto.VoucherCode != null)
@@ -181,12 +201,13 @@ namespace ElectronicStore.Api.Controllers
                         {
                             discountVoucher = voucher.DiscountValue;
                         }
-                        totalAmount -= discountVoucher;
+                        
                     }
                     else
                     {
-                        return BadRequest("Mã voucher không hợp lệ.");
+                        return BadRequest("Invalid voucher code");
                     }
+                    totalAmount = totalAmount - discountVoucher - discountPoint;
                 }
                 // 1. Tạo Order
                 string orderCode = await GenerateOrderCodeAsync();
@@ -318,6 +339,8 @@ namespace ElectronicStore.Api.Controllers
                         order.TotalAmount,
                         order.Status,
                         order.DiscountVoucher,
+                        order.UsePoint,
+                        order.DiscountPoint,
                         PaymentMethod = "VNPay",
                         TransactionCode = vnp.GetResponseData("vnp_TransactionNo"),
                         PaymentDate = DateTime.Now

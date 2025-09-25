@@ -13,26 +13,29 @@ namespace ElectronicStore.Api.Controllers
     public class CartController : ControllerBase
     {
         private readonly ElectronicStoreContext _context;
+        private readonly IConfiguration _config;
 
-        public CartController(ElectronicStoreContext context)
+        public CartController(ElectronicStoreContext context, IConfiguration config)
         {
             _context = context;
+            _config = config;
         }
-
+        private string GetBaseUrl() => $"{Request.Scheme}://{Request.Host}/";
         // Get AccountId from token
         private int GetAccountId()
         {
             return int.Parse(User.FindFirst("AccountID").Value);
         }
-
+        
         // Get user's cart
         [HttpGet]
         public async Task<IActionResult> GetCart()
         {
+            var baseUrl = GetBaseUrl();
             int accountId = GetAccountId();
 
             var cart = await _context.Carts
-                .Include(c => c.Product)
+                .Include(c => c.Product).ThenInclude(c => c.ProductImages)
                 .Where(c => c.CartId == accountId)
                 .ToListAsync();
 
@@ -45,6 +48,7 @@ namespace ElectronicStore.Api.Controllers
                 c.ProductId,
                 c.Product.ProductName,
                 c.Product.SellPrice,
+                MainImage = _context.ProductImages.FirstOrDefault(x => x.ProductId == c.ProductId && x.ImageMain == true) is ProductImage m ? $"{baseUrl}{_config["ImageSettings:ProductPath"]}{m.UrlProductImage}" : null,
                 c.Quantity
             });
 
