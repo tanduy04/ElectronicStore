@@ -48,7 +48,9 @@ namespace ElectronicStore.Api.Controllers
                     if (customer == null) return BadRequest("Customer not found.");
                     if(customer.Point <=0) return BadRequest("You have no points to use");
                     discountPoint = customer.Point*1000;
-                    
+                    customer.Point = 0;
+                    _context.Customers.Update(customer);    
+
                 }
                 // 3. Tạo OrderCode
                 string orderCode = await GenerateOrderCodeAsync();
@@ -180,7 +182,8 @@ namespace ElectronicStore.Api.Controllers
                     if (customer == null) return BadRequest("Customer not found.");
                     if (customer.Point <= 0) return BadRequest("You have no points to use");
                     discountPoint = customer.Point * 1000;
-
+                    customer.Point = 0;
+                    _context.Customers.Update(customer);
                 }
                 decimal totalAmount = cartItems.Sum(c => c.Quantity * c.Product.SellPrice);
                 decimal discountVoucher = 0;
