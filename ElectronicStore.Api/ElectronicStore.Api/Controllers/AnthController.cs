@@ -186,15 +186,6 @@ namespace ElectronicStore.Api.Controllers
 
                 user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
                 await _db.SaveChangesAsync();
-
-                var subject = "Mật khẩu mới của bạn";
-                var body = $@"
-            <h2>Xin chào {user.Email},</h2>
-            <p>Mật khẩu mới của bạn là: <b>{newPassword}</b></p>
-            <p>Vui lòng đổi mật khẩu sau khi đăng nhập nhé!</p>
-            <p>Trân trọng,<br/>Điện Máy Xanh</p>
-        ";
-
                 await _emailService.SendForgotPasswordEmail(dto.Email, newPassword);
 
                 return Ok("A new password has been sent to your email.");

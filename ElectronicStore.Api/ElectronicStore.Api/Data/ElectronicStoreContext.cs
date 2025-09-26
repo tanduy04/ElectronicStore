@@ -363,9 +363,7 @@ public partial class ElectronicStoreContext : DbContext
             entity.Property(e => e.CustomerId).HasColumnName("CustomerID");
             entity.Property(e => e.Method).HasMaxLength(100);
             entity.Property(e => e.OrderId).HasColumnName("OrderID");
-            entity.Property(e => e.Status)
-                .HasMaxLength(100)
-                .IsFixedLength();
+            entity.Property(e => e.Status).HasMaxLength(50);
             entity.Property(e => e.TransactionCode).HasMaxLength(200);
 
             entity.HasOne(d => d.Customer).WithMany(p => p.Payments)

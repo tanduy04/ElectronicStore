@@ -13,7 +13,7 @@ namespace ElectronicStore.Api.Helper
         public const string VERSION = "2.1.0";
         private SortedList<String, String> _requestData = new SortedList<String, String>(new VnPayCompare());
         private SortedList<String, String> _responseData = new SortedList<String, String>(new VnPayCompare());
-
+        public SortedList<String, String> RequestData => _requestData;
         public void AddRequestData(string key, string value)
         {
             if (!String.IsNullOrEmpty(value))
@@ -146,4 +146,5 @@ namespace ElectronicStore.Api.Helper
             return vnpCompare.Compare(x, y, CompareOptions.Ordinal);
         }
     }
+
 }

@@ -12,12 +12,13 @@ namespace ElectronicStore.Api.Controllers
     [ApiController]
     public class CheckoutController : ControllerBase
     {
-        
+        private readonly EmailService _mailService;
         private readonly ElectronicStoreContext _context;
         private readonly IConfiguration _config;
 
-        public CheckoutController(ElectronicStoreContext context, IConfiguration config)
+        public CheckoutController(ElectronicStoreContext context, IConfiguration config,EmailService mailService)
         {
+            _mailService= mailService;
             _context = context;
             _config= config;
         }
@@ -148,6 +149,7 @@ namespace ElectronicStore.Api.Controllers
                 // Lưu tất cả thay đổi
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
+                await _mailService.CreateOrderSuccess(_context.Accounts.FirstOrDefault(a => a.AccountId==int.Parse(accountId)).Email, orderCode);
 
                 return Ok(new { OrderCode = orderCode, Total = totalAmount,DiscountVoucher= discountVoucher,DiscountPoint=discountPoint, Message = "Order successful" });
             }
@@ -311,7 +313,7 @@ namespace ElectronicStore.Api.Controllers
             bool checkSignature = vnp.ValidateSignature(vnpSecureHash, hashSecret);
 
             string orderCode = vnp.GetResponseData("vnp_TxnRef");
-            var order = await _context.Orders.FirstOrDefaultAsync(o => o.OrderCode == orderCode);
+            var order = await _context.Orders.Include(o => o.Customer).ThenInclude(o => o.Account).FirstOrDefaultAsync(o => o.OrderCode == orderCode);
             if (order == null) return NotFound("Order not found.");
 
             if (checkSignature && vnp.GetResponseData("vnp_ResponseCode") == "00")
@@ -355,6 +357,8 @@ namespace ElectronicStore.Api.Controllers
 
             order.Status = "UnPaid";
             await _context.SaveChangesAsync();
+            await _mailService.CreateOrderSuccess(order.Customer.Account.Email, orderCode);
+
             return BadRequest("Payment failed");
         }
         private async Task<string> GenerateOrderCodeAsync()
