@@ -57,7 +57,7 @@ namespace ElectronicStore.Api.Controllers
                     {
                         b.BannerId,
                         b.BannerName,
-                        ImageUrl = string.IsNullOrEmpty(b.ImageUrl) ? null : baseUrl + b.ImageUrl
+                        ImageUrl = $"{baseUrl}{_config["ImageSettings:BannerPath"]}{b.ImageUrl}",
                     })
                     .ToListAsync();
 
@@ -81,7 +81,7 @@ namespace ElectronicStore.Api.Controllers
                     {
                         b.BannerId,
                         b.BannerName,
-                        ImageUrl = string.IsNullOrEmpty(b.ImageUrl) ? null : baseUrl + b.ImageUrl
+                        ImageUrl = $"{baseUrl}{_config["ImageSettings:BannerPath"]}{b.ImageUrl}",
                     })
                     .FirstOrDefaultAsync();
 
@@ -102,15 +102,17 @@ namespace ElectronicStore.Api.Controllers
         {
             try
             {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
                 if (dto.ImageFile == null || !ImageHelper.IsImageFile(dto.ImageFile))
                     return BadRequest("Please upload a valid image file (jpg, jpeg, png, gif).");
 
-                string imageUrl = await SaveBannerImageAsync(dto.BannerName, dto.ImageFile);
-
+                string folderPath = Path.Combine(_env.WebRootPath, _config["ImageSettings:BannerPath"]);
+                string fileName = await ImageHelper.SaveImageAsync(dto.ImageFile, folderPath, dto.BannerName);
                 var banner = new Banner
                 {
                     BannerName = dto.BannerName,
-                    ImageUrl = imageUrl
+                    ImageUrl = fileName
                 };
 
                 _context.Banners.Add(banner);
@@ -150,7 +152,8 @@ namespace ElectronicStore.Api.Controllers
                     }
 
                     // Save new image
-                    banner.ImageUrl = await SaveBannerImageAsync(dto.BannerName, dto.ImageFile);
+                    string folderPath = Path.Combine(_env.WebRootPath, _config["ImageSettings:BannerPath"]);
+                    await ImageHelper.SaveImageAsync(dto.ImageFile, folderPath, dto.BannerName);
                 }
 
                 _context.Banners.Update(banner);
