@@ -120,41 +120,67 @@ namespace ElectronicStore.Api.Controllers
             var accountId = User.FindFirst("AccountID")?.Value;
             if (accountId == null) return Unauthorized();
             var employee = await _context.Employees.FirstOrDefaultAsync(e => e.AccountId == int.Parse(accountId));
-            var import = new Import
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                ImportCode = await GenerateImportCodeAsync(),
-                SupplierId = dto.SupplierID,
-                EmployeeId = employee.EmployeeId,
-                ImportDate = DateTime.UtcNow,
-                TotalAmount = 0,
-                Status = "Pending",
-                Note = dto.Note,
-            };
-            _context.Imports.Add(import);
-            await _context.SaveChangesAsync();
-            decimal? totalAmount = 0;
-            foreach (var detail in dto.ImportDetails)
-            {
-                var product = await _context.Products.FindAsync(detail.ProductID);
-                var importDetail = new ImportDetail
+                foreach (var detail in dto.ImportDetails)
                 {
-                    ImportId = import.ImportId,
-                    ProductId = detail.ProductID,
-                    Quantity = detail.Quantity,
-                    CostPrice = product.CostPrice,
-                    TotalPrice = detail.Quantity*product.CostPrice,
+                    var product = await _context.Products.FindAsync(detail.ProductID);
+                    if (product == null)
+                    {
+                        await transaction.RollbackAsync();
+                        return BadRequest($"ProductID {detail.ProductID} not found");
+                    }
+
+                    if (product.SupplierId != dto.SupplierID)
+                    {
+                        await transaction.RollbackAsync();
+                        return BadRequest($"ProductID {detail.ProductID} does not belong to SupplierID {dto.SupplierID}");
+                    }
+                }
+                var import = new Import
+                {
+                    ImportCode = await GenerateImportCodeAsync(),
+                    SupplierId = dto.SupplierID,
+                    EmployeeId = employee.EmployeeId,
+                    ImportDate = DateTime.UtcNow,
+                    TotalAmount = 0,
+                    Status = "Pending",
+                    Note = dto.Note,
                 };
-                totalAmount += importDetail.TotalPrice;
-                _context.ImportDetails.Add(importDetail);
+                _context.Imports.Add(import);
+                await _context.SaveChangesAsync();
+                decimal? totalAmount = 0;
+                foreach (var detail in dto.ImportDetails)
+                {
+                    var product = await _context.Products.FindAsync(detail.ProductID);
+                    var importDetail = new ImportDetail
+                    {
+                        ImportId = import.ImportId,
+                        ProductId = detail.ProductID,
+                        Quantity = detail.Quantity,
+                        CostPrice = product.CostPrice,
+                        TotalPrice = detail.Quantity * product.CostPrice,
+                    };
+                    totalAmount += importDetail.TotalPrice;
+                    _context.ImportDetails.Add(importDetail);
+                }
+                var imp = await _context.Imports.FirstOrDefaultAsync(i => i.ImportId == import.ImportId);
+                imp.TotalAmount = totalAmount ?? 0;
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return Ok("Created Success");
             }
-            var imp= await _context.Imports.FirstOrDefaultAsync(i => i.ImportId == import.ImportId);
-            imp.TotalAmount = totalAmount ?? 0;
-            await _context.SaveChangesAsync();
-            return Ok("Created Success");
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return StatusCode(500, "An error occurred while processing the request.");
+            }
+            
         }
         [HttpPut("create")]
         [Authorize(Roles = "Admin,Employee")]
-        public async Task<IActionResult> UpdateStatusDeliv([FromForm] int importId, [FromForm] string status)
+        public async Task<IActionResult> UpdateStatusDelivered([FromForm] int importId, [FromForm] string status)
         {
             var import = await _context.Imports.FirstOrDefaultAsync(i => i.ImportId == importId && i.Status=="Pending");
             if (import == null)
