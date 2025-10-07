@@ -425,8 +425,8 @@ public partial class ElectronicStoreContext : DbContext
             entity.Property(e => e.AccountId).HasColumnName("AccountID");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.ParentId).HasColumnName("ParentID");
             entity.Property(e => e.ProductId).HasColumnName("ProductID");
-            entity.Property(e => e.Title).HasMaxLength(300);
 
             entity.HasOne(d => d.Account).WithMany(p => p.ProductReviews)
                 .HasForeignKey(d => d.AccountId)

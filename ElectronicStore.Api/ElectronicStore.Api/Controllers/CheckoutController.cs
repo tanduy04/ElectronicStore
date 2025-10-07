@@ -48,7 +48,7 @@ namespace ElectronicStore.Api.Controllers
                     var customer = await _context.Customers.FirstOrDefaultAsync(c => c.AccountId == int.Parse(accountId));
                     if (customer == null) return BadRequest("Customer not found.");
                     if(customer.Point <=0) return BadRequest("You have no points to use");
-                    discountPoint = customer.Point*1000;
+                    discountPoint = customer.Point*10000;
                     customer.Point = 0;
                     _context.Customers.Update(customer);    
 

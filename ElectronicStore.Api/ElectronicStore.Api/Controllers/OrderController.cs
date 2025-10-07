@@ -296,11 +296,20 @@ namespace ElectronicStore.Api.Controllers
 
                 if (newStatus == "Delivered" && order.PaymentMethod == "COD")
                 {
-                    var payment = await _context.Payments.FirstOrDefaultAsync(p => p.OrderId == order.OrderId);
-                    if (payment != null)
+                    if (order.PaymentMethod == "COD")
                     {
-                        payment.Status = "Paid";
-                        _context.Payments.Update(payment);
+                        var payment = await _context.Payments.FirstOrDefaultAsync(p => p.OrderId == order.OrderId);
+                        if (payment != null)
+                        {
+                            payment.Status = "Paid";
+                            _context.Payments.Update(payment);
+                        }
+                    }
+                    var customer = await _context.Customers.FirstOrDefaultAsync(c => c.CustomerId == order.CustomerId);
+                    if(customer != null)
+                        {
+                        customer.Point = customer.Point + (int)(order.TotalAmount/1000000); // 1 điểm cho mỗi 10000đ
+                        _context.Customers.Update(customer);
                     }
                 }
 

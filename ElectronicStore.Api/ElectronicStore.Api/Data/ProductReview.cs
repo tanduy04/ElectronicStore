@@ -13,7 +13,7 @@ public partial class ProductReview
 
     public int Rating { get; set; }
 
-    public string? Title { get; set; }
+    public int? ParentId { get; set; }
 
     public string? Content { get; set; }
 
