@@ -28,7 +28,7 @@ namespace ElectronicStore.Api.Controllers
         }
         private string GetBaseUrl() => $"{Request.Scheme}://{Request.Host}/";
 
-        // =================== ADMIN & EMPLOYEE ===================
+         //=================== ADMIN & EMPLOYEE ===================
 
         // Lấy tất cả đơn hàng
         [HttpGet("getAll")]
@@ -207,7 +207,7 @@ namespace ElectronicStore.Api.Controllers
                 shippingAddress = order.ShippingAddress,
                 PhoneNumber = order.PhoneNumber,
                 paymentMethod = order.PaymentMethod,
-                CustomerName = order.FullName,  
+                CustomerName = order.FullName,
                 OrderDetails = order.OrderDetails.Select(d => new OrderDetailDto
                 {
                     OrderDetailId = d.OrderDetailId,

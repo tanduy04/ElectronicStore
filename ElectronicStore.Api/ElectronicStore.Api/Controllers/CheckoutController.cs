@@ -43,14 +43,14 @@ namespace ElectronicStore.Api.Controllers
                 if (!cartItems.Any())
                     return BadRequest("Empty cart");
                 decimal discountPoint = 0;
-                if (dto.usePoint == true )
+                if (dto.usePoint == true)
                 {
                     var customer = await _context.Customers.FirstOrDefaultAsync(c => c.AccountId == int.Parse(accountId));
                     if (customer == null) return BadRequest("Customer not found.");
-                    if(customer.Point <=0) return BadRequest("You have no points to use");
-                    discountPoint = customer.Point*10000;
+                    if (customer.Point <= 0) return BadRequest("You have no points to use");
+                    discountPoint = customer.Point * 10000;
                     customer.Point = 0;
-                    _context.Customers.Update(customer);    
+                    _context.Customers.Update(customer);
 
                 }
                 // 3. Tạo OrderCode
@@ -76,7 +76,7 @@ namespace ElectronicStore.Api.Controllers
                         {
                             discountVoucher = voucher.DiscountValue;
                         }
-                        
+
                     }
                     else
                     {
@@ -149,9 +149,9 @@ namespace ElectronicStore.Api.Controllers
                 // Lưu tất cả thay đổi
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
-                await _mailService.CreateOrderSuccess(_context.Accounts.FirstOrDefault(a => a.AccountId==int.Parse(accountId)).Email, orderCode);
+                await _mailService.CreateOrderSuccess(_context.Accounts.FirstOrDefault(a => a.AccountId == int.Parse(accountId)).Email, orderCode);
 
-                return Ok(new { OrderCode = orderCode, Total = totalAmount,DiscountVoucher= discountVoucher,DiscountPoint=discountPoint, Message = "Order successful" });
+                return Ok(new { OrderCode = orderCode, Total = totalAmount, DiscountVoucher = discountVoucher, DiscountPoint = discountPoint, Message = "Order successful" });
             }
             catch (Exception ex)
             {
@@ -206,7 +206,7 @@ namespace ElectronicStore.Api.Controllers
                         {
                             discountVoucher = voucher.DiscountValue;
                         }
-                        
+
                     }
                     else
                     {
@@ -262,7 +262,7 @@ namespace ElectronicStore.Api.Controllers
                 await _context.SaveChangesAsync();
 
                 var config = _config.GetSection("VNPay");
-                
+
                 string vnp_Returnurl = config["ReturnUrl"]; // Callback
                 string vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
                 string vnp_TmnCode = config["TmnCode"]; // mã merchant
@@ -293,7 +293,7 @@ namespace ElectronicStore.Api.Controllers
             }
         }
 
-        
+
 
         [HttpGet("VnPayReturn")]
         public async Task<IActionResult> VnPayReturn([FromQuery] Dictionary<string, string> vnpParams)

@@ -68,6 +68,23 @@ namespace ElectronicStore.Api.Controllers
 
         }
 
+        [HttpGet("FilterBySupllierID{id}")]
+        [Authorize(Roles = "Admin,Employee")]
+        public async Task<IActionResult> GetBySupllierId(int id, string? sortBy = "CreatedAt", string? sortOrder = "desc", int pageNumber = 1, int pageSize = 12)
+        {
+            try
+            {
+                var query = _context.Products.Where(p => p.SupplierId == id);
+                var result = await GetPagedProducts(query, sortBy, sortOrder, pageNumber, pageSize);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Internal server error: " + ex.Message);
+            }
+
+        }
+
         // GET: api/products/{id}
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
@@ -105,6 +122,7 @@ namespace ElectronicStore.Api.Controllers
                 return StatusCode(500, "Internal server error: " + ex.Message);
             }
         }
+        
 
         // POST: api/products
         [HttpPost]
@@ -133,6 +151,7 @@ namespace ElectronicStore.Api.Controllers
                     StockQuantity = dto.StockQuantity,
                     CategoryId = dto.CategoryID,
                     BrandId = dto.BrandID,
+                    SupplierId = dto.SupplierID,
                     IsActive = dto.IsActive,
                     ManufactureYear = dto.ManufactureYear,
                     CreatedAt = DateTime.UtcNow
@@ -190,6 +209,7 @@ namespace ElectronicStore.Api.Controllers
                 product.StockQuantity = dto.StockQuantity;
                 product.CategoryId = dto.CategoryID;
                 product.BrandId = dto.BrandID;
+                product.SupplierId = dto.SupplierID;
                 product.ManufactureYear = dto.ManufactureYear;
                 product.IsActive = dto.IsActive;
                 product.UpdatedAt = DateTime.UtcNow;
@@ -268,7 +288,7 @@ namespace ElectronicStore.Api.Controllers
             };
 
             var totalItems = await query.CountAsync();
-            var products = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).Include(p => p.ProductImages).Include(p => p.Category).Include(p=> p.Brand).ToListAsync();
+            var products = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).Include(p => p.ProductImages).Include(p => p.Category).Include(p=> p.Brand).Include(p => p.Supplier).ToListAsync();
             var baseUrl = GetBaseUrl();
 
             var result = products.Select(p => new
@@ -282,6 +302,7 @@ namespace ElectronicStore.Api.Controllers
                 p.StockQuantity,
                 p.IsActive,
                 p.Brand.BrandId,
+                p.Supplier.SupplierId,
                 p.Brand.BrandName,
                 p.Category.CategoryId,
                 p.Category.CategoryName,

@@ -27,6 +27,8 @@ public partial class Product
 
     public int ManufactureYear { get; set; }
 
+    public int? SupplierId { get; set; }
+
     public int BrandId { get; set; }
 
     public bool IsActive { get; set; }
@@ -50,4 +52,6 @@ public partial class Product
     public virtual ICollection<ProductImage> ProductImages { get; set; } = new List<ProductImage>();
 
     public virtual ICollection<ProductReview> ProductReviews { get; set; } = new List<ProductReview>();
+
+    public virtual Supplier? Supplier { get; set; }
 }

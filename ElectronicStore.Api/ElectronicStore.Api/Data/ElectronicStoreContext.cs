@@ -53,6 +53,8 @@ public partial class ElectronicStoreContext : DbContext
 
     public virtual DbSet<Role> Roles { get; set; }
 
+    public virtual DbSet<Supplier> Suppliers { get; set; }
+
     public virtual DbSet<Voucher> Vouchers { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -250,17 +252,31 @@ public partial class ElectronicStoreContext : DbContext
 
             entity.HasIndex(e => e.ImportCode, "UQ__Imports__43999138C02200B8").IsUnique();
 
-            entity.Property(e => e.ImportId).HasColumnName("ImportID");
+            entity.Property(e => e.ImportId)
+                .ValueGeneratedOnAdd()
+                .HasColumnName("ImportID");
             entity.Property(e => e.EmployeeId).HasColumnName("EmployeeID");
             entity.Property(e => e.ImportCode).HasMaxLength(50);
             entity.Property(e => e.ImportDate).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.Note).HasMaxLength(1000);
-            entity.Property(e => e.Supplier).HasMaxLength(300);
+            entity.Property(e => e.Status).HasMaxLength(50);
+            entity.Property(e => e.SupplierId).HasColumnName("SupplierID");
             entity.Property(e => e.TotalAmount).HasColumnType("decimal(18, 2)");
 
             entity.HasOne(d => d.Employee).WithMany(p => p.Imports)
                 .HasForeignKey(d => d.EmployeeId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Imports_Employees");
+
+            entity.HasOne(d => d.ImportNavigation).WithOne(p => p.ImportImportNavigation)
+                .HasForeignKey<Import>(d => d.ImportId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Imports_Supplier");
+
+            entity.HasOne(d => d.Supplier).WithMany(p => p.ImportSuppliers)
+                .HasForeignKey(d => d.SupplierId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Import_Supplier");
         });
 
         modelBuilder.Entity<ImportDetail>(entity =>
@@ -268,13 +284,13 @@ public partial class ElectronicStoreContext : DbContext
             entity.HasKey(e => e.ImportDetailId).HasName("PK__ImportDe__CDFBBA515B884B36");
 
             entity.Property(e => e.ImportDetailId).HasColumnName("ImportDetailID");
+            entity.Property(e => e.CostPrice).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.ImportId).HasColumnName("ImportID");
             entity.Property(e => e.ProductId).HasColumnName("ProductID");
             entity.Property(e => e.Quantity).HasDefaultValue(1);
             entity.Property(e => e.TotalPrice)
-                .HasComputedColumnSql("([Quantity]*[UnitPrice])", true)
+                .HasComputedColumnSql("([Quantity]*[CostPrice])", true)
                 .HasColumnType("decimal(29, 2)");
-            entity.Property(e => e.UnitPrice).HasColumnType("decimal(18, 2)");
 
             entity.HasOne(d => d.Import).WithMany(p => p.ImportDetails)
                 .HasForeignKey(d => d.ImportId)
@@ -391,6 +407,7 @@ public partial class ElectronicStoreContext : DbContext
             entity.Property(e => e.OriginalPrice).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.ProductName).HasMaxLength(300);
             entity.Property(e => e.SellPrice).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.SupplierId).HasColumnName("SupplierID");
 
             entity.HasOne(d => d.Brand).WithMany(p => p.Products)
                 .HasForeignKey(d => d.BrandId)
@@ -401,6 +418,10 @@ public partial class ElectronicStoreContext : DbContext
                 .HasForeignKey(d => d.CategoryId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Products_Categories");
+
+            entity.HasOne(d => d.Supplier).WithMany(p => p.Products)
+                .HasForeignKey(d => d.SupplierId)
+                .HasConstraintName("FK_Products_Supplier");
         });
 
         modelBuilder.Entity<ProductImage>(entity =>
@@ -446,6 +467,14 @@ public partial class ElectronicStoreContext : DbContext
             entity.Property(e => e.RoleId).HasColumnName("RoleID");
             entity.Property(e => e.Description).HasMaxLength(255);
             entity.Property(e => e.RoleName).HasMaxLength(50);
+        });
+
+        modelBuilder.Entity<Supplier>(entity =>
+        {
+            entity.ToTable("Supplier");
+
+            entity.Property(e => e.SupplierId).HasColumnName("SupplierID");
+            entity.Property(e => e.SupplierName).HasMaxLength(255);
         });
 
         modelBuilder.Entity<Voucher>(entity =>

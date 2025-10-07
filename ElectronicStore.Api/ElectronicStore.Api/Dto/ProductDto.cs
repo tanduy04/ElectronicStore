@@ -33,7 +33,11 @@ namespace ElectronicStore.Api.Dto
         [Required(ErrorMessage = "CategoryID is required")]
 
         public int CategoryID { get; set; }
+        [Required]
+
+        public int SupplierID { get; set; }
         [Required(ErrorMessage = "BrandID is required")]
+
 
         public int BrandID { get; set; }
         [Required(ErrorMessage = "ManufactureYear is required")]
