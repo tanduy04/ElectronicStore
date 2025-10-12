@@ -45,7 +45,7 @@ namespace ElectronicStore.Api.Controllers
                     return BadRequest(ModelState);
                 var role_custommer = _db.Roles.FirstOrDefault(r => r.RoleName == "Customer");
 
-                var account = new Account
+                var newAccount = new Account
                 {
                     Email = dto.Email,
                     Username = dto.Username,
@@ -55,6 +55,10 @@ namespace ElectronicStore.Api.Controllers
                     Avatar = "default-avatar.jpg",
                     CreatedAt = DateTime.UtcNow,
                 };
+                _db.Accounts.Add(newAccount);
+                await _db.SaveChangesAsync();
+
+                var account = _db.Accounts.First(a => a.Username == newAccount.Username);
                 var custommer = new Customer
                 {
                     FullName = dto.FullName,
@@ -64,16 +68,10 @@ namespace ElectronicStore.Api.Controllers
                     Point = 0
                 };
 
-                _db.Accounts.Add(account);
+                _db.Customers.Add(custommer);
                 await _db.SaveChangesAsync();
 
-                // Tạo customer profile
-                _db.Customers.Add(new Customer
-                {
-                    AccountId = account.AccountId,
-                    FullName = dto.FullName
-                });
-                await _db.SaveChangesAsync();
+                
 
                 return Ok("Registered successfully");
             }
