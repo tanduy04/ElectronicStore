@@ -51,7 +51,7 @@ namespace ElectronicStore.Api.Controllers
                      })
            .FirstOrDefaultAsync();
                 if (childReview != null)
-                    review.ChildReview = childReview;
+                    review.ReplyReview = childReview;
             }
             return Ok(reviews);
         }
@@ -69,6 +69,7 @@ namespace ElectronicStore.Api.Controllers
                 productReview.Content = dto.Content;
                 productReview.Rating = dto.Rating;
                 productReview.CreatedAt = DateTime.UtcNow;
+                productReview.IsActive = true;
                 _context.ProductReviews.Add(productReview);
                 await _context.SaveChangesAsync();
                 return Ok("Review created successfully.");

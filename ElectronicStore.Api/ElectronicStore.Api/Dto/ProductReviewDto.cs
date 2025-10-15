@@ -39,8 +39,9 @@ namespace ElectronicStore.Api.Dto
         [Range(1,5)]
         public int Rating { get; set; }
         public int? ParentId { get; set; }
-        public ViewReplyReview? ChildReview { get; set; }
         public string? Content { get; set; }
+        public ViewReplyReview? ReplyReview { get; set; }
+
         public DateTime CreatedAt { get; set; }
         public bool IsActive { get; set; }
     }   

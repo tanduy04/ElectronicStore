@@ -111,6 +111,8 @@ namespace ElectronicStore.Api.Controllers
                     product.Category.CategoryName,
                     product.IsActive,
                     product.ManufactureYear,
+                    SoldQuantity= _context.OrderDetails.Where(od => od.ProductId == product.ProductId).Sum(od => (int?)od.Quantity) ?? 0,
+                    ProductReview= await GetReviewByProductId(id),
                     MainImage = product.ProductImages.FirstOrDefault(i => i.ImageMain) is ProductImage m ? $"{baseUrl}{_config["ImageSettings:ProductPath"]}{m.UrlProductImage}" : null,
                     SubImages = product.ProductImages.Where(i => !i.ImageMain).Select(i => $"{baseUrl}{_config["ImageSettings:ProductPath"]}{i.UrlProductImage}").ToList(),
                     product.CreatedAt,
@@ -276,7 +278,43 @@ namespace ElectronicStore.Api.Controllers
                 return StatusCode(500, "Internal server error: " + ex.Message);
             }
         }
-
+        private async Task<object> GetReviewByProductId(int id)
+        {
+            var reviews = await _context.ProductReviews
+                    .Where(r => r.ProductId == id && r.ParentId == null)
+                    .OrderByDescending(r => r.CreatedAt)
+                    .Select(r => new ProductReviewDto
+                    {
+                        ReviewId = r.ReviewId,
+                        ProductId = r.ProductId,
+                        AccountId = r.AccountId,
+                        Name = r.Account.Email,
+                        Rating = r.Rating,
+                        ParentId = r.ParentId,
+                        Content = r.Content,
+                        IsActive=r.IsActive
+                    })
+                    .ToListAsync();
+            if (reviews == null || reviews.Count == 0)
+                return null;
+            foreach (var review in reviews)
+            {
+                var childReview = await _context.ProductReviews
+                     .Where(cr => cr.ParentId == review.ReviewId)
+                     .OrderByDescending(r => r.CreatedAt)
+                     .Select(r => new ViewReplyReview
+                     {
+                         ParentID = r.ParentId.Value,
+                         ReviewID = r.ReviewId,
+                         Name = "Quản trị viên",
+                         Content = r.Content,
+                     })
+           .FirstOrDefaultAsync();
+                if (childReview != null)
+                    review.ReplyReview = childReview;
+            }
+            return reviews;
+        }
         private async Task<object> GetPagedProducts(IQueryable<Product> query, string? sortBy, string? sortOrder, int pageNumber, int pageSize)
         {
             query = sortBy?.ToLower() switch
@@ -288,32 +326,62 @@ namespace ElectronicStore.Api.Controllers
             };
 
             var totalItems = await query.CountAsync();
-            var products = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).Include(p => p.ProductImages).Include(p => p.Category).Include(p=> p.Brand).Include(p => p.Supplier).ToListAsync();
+            var products = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Include(p => p.ProductImages)
+                .Include(p => p.Category)
+                .Include(p => p.Brand)
+                .Include(p => p.Supplier)
+                .ToListAsync();
+
             var baseUrl = GetBaseUrl();
 
-            var result = products.Select(p => new
+            var resultList = new List<object>();
+            foreach (var p in products)
             {
-                p.ProductId,
-                p.ProductName,
-                p.Description,
-                p.CostPrice,
-                p.SellPrice,
-                p.OriginalPrice,
-                p.StockQuantity,
-                p.IsActive,
-                p.Brand.BrandId,
-                p.Supplier.SupplierId,
-                p.Brand.BrandName,
-                p.Category.CategoryId,
-                p.Category.CategoryName,
-                p.ManufactureYear,
-                MainImage = p.ProductImages.FirstOrDefault(i => i.ImageMain) is ProductImage m ? $"{baseUrl}{_config["ImageSettings:ProductPath"]}{m.UrlProductImage}" : null,
-                SubImages = p.ProductImages.Where(i => !i.ImageMain).Select(i => $"{baseUrl}{_config["ImageSettings:ProductPath"]}{i.UrlProductImage}").ToList(),
-                p.CreatedAt,
-                p.UpdatedAt
-            });
+                var reviews = await GetReviewByProductId(p.ProductId);
 
-            return new { TotalItems = totalItems, PageNumber = pageNumber, PageSize = pageSize, TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize), Data = result };
+                resultList.Add(new
+                {
+                    p.ProductId,
+                    p.ProductName,
+                    p.Description,
+                    p.CostPrice,
+                    p.SellPrice,
+                    p.OriginalPrice,
+                    p.StockQuantity,
+                    p.IsActive,
+                    p.Brand.BrandId,
+                    p.Supplier.SupplierId,
+                    p.Brand.BrandName,
+                    p.Category.CategoryId,
+                    p.Category.CategoryName,
+                    p.ManufactureYear,
+                    SoldQuantity = _context.OrderDetails
+                        .Where(od => od.ProductId == p.ProductId)
+                        .Sum(od => (int?)od.Quantity) ?? 0,
+                    ProductReview = reviews,
+                    MainImage = p.ProductImages.FirstOrDefault(i => i.ImageMain) is ProductImage m
+                        ? $"{baseUrl}{_config["ImageSettings:ProductPath"]}{m.UrlProductImage}"
+                        : null,
+                    SubImages = p.ProductImages
+                        .Where(i => !i.ImageMain)
+                        .Select(i => $"{baseUrl}{_config["ImageSettings:ProductPath"]}{i.UrlProductImage}")
+                        .ToList(),
+                    p.CreatedAt,
+                    p.UpdatedAt
+                });
+            }
+
+            return new
+            {
+                TotalItems = totalItems,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize),
+                Data = resultList
+            };
         }
     }
 }
