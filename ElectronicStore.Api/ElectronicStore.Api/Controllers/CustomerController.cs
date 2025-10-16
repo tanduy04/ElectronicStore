@@ -95,35 +95,47 @@ namespace ElectronicStore.Api.Controllers
                 {
                     var baseUrl = $"{Request.Scheme}://{Request.Host}/";
 
+                    // Lấy thông tin customer kèm account
                     var customer = await _context.Customers
-                    .Include(c => c.Account)
-                    .Where(c => c.CustomerId == id)
-                    .Select(c => new
-                    {
-                        c.CustomerId,
-                        c.FullName,
-                        c.Address,
-                        c.Gender,
-                        c.BirthDate,
-                        c.Phone,
-                        c.Account.Email,
-                        c.Point,
-                        c.Account.IsActive,
-                        ImageUrl = $"{baseUrl}{_config["ImageSettings:AccountPath"]}{c.Account.Avatar}",
+                        .Include(c => c.Account)
+                        .Where(c => c.CustomerId == id)
+                        .Select(c => new
+                        {
+                            c.CustomerId,
+                            c.FullName,
+                            c.Address,
+                            c.Gender,
+                            BirthDate = c.BirthDate.HasValue
+                                ? c.BirthDate.Value.ToString("dd/MM/yyyy")
+                                : null, // format ngày kiểu Việt Nam
+                            c.Phone,
+                            c.Account.Email,
+                            c.Point,
+                            c.Account.IsActive,
+                            ImageUrl = $"{baseUrl}{_config["ImageSettings:AccountPath"]}{c.Account.Avatar}"
+                        })
+                        .FirstOrDefaultAsync();
 
-                    })
-                    .FirstOrDefaultAsync();
+                    if (customer == null)
+                        return NotFound("Customer not found.");
 
-                    if (customer == null) return NotFound("Customer not found.");
-                    if(User.IsInRole("Customer"))
+                    // 🧠 Kiểm tra quyền truy cập
+                    if (User.IsInRole("Customer"))
                     {
                         var accountId = int.Parse(User.FindFirst("AccountID").Value);
-                        var customerOfUser = await _context.Customers.FirstOrDefaultAsync(c => c.AccountId == accountId);
+
+                        var customerOfUser = await _context.Customers
+                            .FirstOrDefaultAsync(c => c.AccountId == accountId);
+
+                        // Nếu không phải chính chủ → cấm truy cập
                         if (customerOfUser == null || customerOfUser.CustomerId != id)
                         {
-                            return BadRequest("You are not authorized to access this customer's information.");
+                            return Forbid("You are not authorized to access this customer's information.");
                         }
                     }
+                    // Nếu role là Admin hoặc Employee → không cần kiểm tra thêm gì
+                    // vì đã qua [Authorize]
+
                     return Ok(customer);
                 }
                 catch (Exception ex)
@@ -131,6 +143,7 @@ namespace ElectronicStore.Api.Controllers
                     return StatusCode(500, "Internal server error: " + ex.Message);
                 }
             }
+
             // GET: api/customers/search?phone=0123456789
             [HttpGet("search")]
             [Authorize(Roles = "Admin,Employee")]
