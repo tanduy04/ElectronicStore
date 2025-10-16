@@ -39,7 +39,11 @@ namespace ElectronicStore.Api.Controllers
                 var cartItems = await _context.Carts.Include(c => c.Product)
                     .Where(c => c.CartId == int.Parse(accountId))
                     .ToListAsync();
-
+                var voucherUsed= await _context.Orders.FirstOrDefaultAsync(o => o.VoucherCode == dto.VoucherCode && o.Customer.AccountId == int.Parse(accountId));
+                if(voucherUsed != null && dto.VoucherCode != null)
+                {
+                    return BadRequest("You have used this voucher");
+                }
                 if (!cartItems.Any())
                     return BadRequest("Empty cart");
                 decimal discountPoint = 0;
@@ -65,7 +69,10 @@ namespace ElectronicStore.Api.Controllers
                         v.VoucherCode == dto.VoucherCode
                         && v.StartDate <= DateTime.UtcNow
                         && v.EndDate >= DateTime.UtcNow
-                        && v.IsActive == true);
+                        && v.IsActive == true
+                        && v.Quantity > 0
+                        )
+                        ;
                     if (voucher != null)
                     {
                         if (voucher.DiscountType == "percent")
@@ -170,7 +177,11 @@ namespace ElectronicStore.Api.Controllers
                     return BadRequest(ModelState);
                 var accountId = User.Claims.FirstOrDefault(c => c.Type == "AccountID")?.Value;
                 if (accountId == null) return Unauthorized("Invalid token.");
-
+                var voucherUsed = await _context.Orders.FirstOrDefaultAsync(o => o.VoucherCode == dto.VoucherCode && o.Customer.AccountId == int.Parse(accountId));
+                if (voucherUsed != null && dto.VoucherCode != null)
+                {
+                    return BadRequest("You have used this voucher");
+                }
                 var cartItems = await _context.Carts
                     .Include(c => c.Product)
                     .Where(c => c.CartId == int.Parse(accountId))
@@ -195,7 +206,8 @@ namespace ElectronicStore.Api.Controllers
                         v.VoucherCode == dto.VoucherCode
                         && v.StartDate <= DateTime.UtcNow
                         && v.EndDate >= DateTime.UtcNow
-                        && v.IsActive == true);
+                        && v.IsActive == true
+                        && v.Quantity>0);
                     if (voucher != null)
                     {
                         if (voucher.DiscountType == "percent")
