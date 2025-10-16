@@ -48,6 +48,7 @@ namespace ElectronicStore.Api.Controllers
                     c.BirthDate,
                     c.Phone,
                     c.Account.Email,
+                    c.Point,
                     c.Account.IsActive,
                     ImageUrl = $"{baseUrl}{_config["ImageSettings:AccountPath"]}{c.Account.Avatar}",
 
