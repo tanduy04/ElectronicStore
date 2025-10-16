@@ -1,10 +1,13 @@
-using ElectronicStore.Api.Data;
+﻿using ElectronicStore.Api.Data;
 using ElectronicStore.Api.Service;
 using ElectronicStore.Api.Service.MailService;
+using Google.Apis.Http;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Net.Http.Headers;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,7 +25,7 @@ builder.Services.AddSwaggerGen(c =>
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
         Name = "Authorization",
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,  // B?t bu?c ph?i l� Http
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,  // B?t bu?c ph?i là Http
         Scheme = "bearer", // ch? th??ng, quan tr?ng
         BearerFormat = "JWT",
         In = Microsoft.OpenApi.Models.ParameterLocation.Header,
@@ -70,6 +73,27 @@ builder.Services.AddAuthentication(options =>
     };
 });
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+// //Đọc khóa Gemini từ appsettings
+//var geminiApiKey = builder.Configuration["Gemini:ApiKey"];
+
+//// Đăng ký HttpClient cho Gemini
+//builder.Services.AddHttpClient("Gemini", client =>
+//{
+//    client.BaseAddress = new Uri("https://generativelanguage.googleapis.com/v1beta/");
+//    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+//});
+//builder.Services.AddSingleton(new GeminiConfig { ApiKey = geminiApiKey });
+
+
+
+// Lưu API key để dùng trong controller
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromDays(3);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("OpenCorsPolicy", policy =>
@@ -84,7 +108,23 @@ builder.Services.AddTransient<EmailService>();
 
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<EmailService>();
+// Trong Program.cs:
+// 1. Đăng ký HttpClient Factory
+builder.Services.AddHttpClient("Gemini", client =>
+{
+    // Đặt địa chỉ cơ sở của API Gemini
+    client.BaseAddress = new Uri("https://generativelanguage.googleapis.com/v1/");
+    // Hoặc chỉ cần "https://generativelanguage.googleapis.com/"
+}); ;
 
+// 2. Đăng ký cấu hình Gemini (Nếu chưa có)
+builder.Services.Configure<GeminiConfig>(
+    builder.Configuration.GetSection("Gemini"));
+builder.Services.AddSingleton(sp =>
+    sp.GetRequiredService<IOptions<GeminiConfig>>().Value);
+
+// 3. Đăng ký Dịch vụ Tìm kiếm Vector (Quan trọng nhất)
+builder.Services.AddScoped<IVectorSearchService, VectorSearchService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -95,7 +135,7 @@ if (app.Environment.IsDevelopment())
 }
 app.UseCors("OpenCorsPolicy");
 app.UseStaticFiles();
-
+app.UseSession();
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
@@ -103,3 +143,7 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+public class GeminiConfig
+{
+    public string ApiKey { get; set; } = "";
+}
