@@ -361,6 +361,7 @@ namespace ElectronicStore.Api.Controllers
                 _context.Carts.RemoveRange(cartItems);
 
                 await _context.SaveChangesAsync();
+                await _mailService.CreateOrderSuccess(order.Customer.Account.Email, orderCode);
 
                 return Ok(new
                 {
@@ -383,7 +384,6 @@ namespace ElectronicStore.Api.Controllers
 
             order.Status = "UnPaid";
             await _context.SaveChangesAsync();
-            await _mailService.CreateOrderSuccess(order.Customer.Account.Email, orderCode);
 
             return BadRequest("Payment failed");
         }
