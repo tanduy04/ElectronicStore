@@ -24,7 +24,7 @@ namespace ElectronicStore.Api.Controllers
         private readonly IConfiguration _config;
         private readonly EmailService _emailService;
 
-        public AuthController(ElectronicStoreContext db, TokenService tokenService, IConfiguration config, EmailService emailService )
+        public AuthController(ElectronicStoreContext db, TokenService tokenService, IConfiguration config, EmailService emailService)
         {
             _db = db;
             _tokenService = tokenService;
@@ -33,7 +33,7 @@ namespace ElectronicStore.Api.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody]  RegisterDto dto)
+        public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
             try
             {
@@ -71,18 +71,18 @@ namespace ElectronicStore.Api.Controllers
                 _db.Customers.Add(custommer);
                 await _db.SaveChangesAsync();
 
-                
+
 
                 return Ok("Registered successfully");
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 return StatusCode(500, "Internal server error: " + ex.Message);
             }
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody]  LoginDto dto)
+        public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
             try
             {
@@ -187,6 +187,74 @@ namespace ElectronicStore.Api.Controllers
                 await _emailService.SendForgotPasswordEmail(dto.Email, newPassword);
 
                 return Ok("A new password has been sent to your email.");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Internal server error: " + ex.Message);
+            }
+        }
+        [HttpGet("get-my-profile")]
+        [Authorize]
+        public async Task<IActionResult> GetMyProfile()
+        {
+            try
+            {
+                var accountID = int.Parse(User.FindFirst("AccountID").Value);
+                var baseUrl = $"{Request.Scheme}://{Request.Host}/";
+                if (User.IsInRole("Customer"))
+                {
+                    var customer = await _db.Customers
+                    .Include(c => c.Account)
+                    .Where(c => c.AccountId == accountID)
+                    .Select(c => new
+                    {
+                        c.CustomerId,
+                        c.FullName,
+                        c.Address,
+                        c.Gender,
+                        BirthDate = c.BirthDate.HasValue
+                            ? c.BirthDate.Value.ToString("dd/MM/yyyy")
+                            : null, // format ngày kiểu Việt Nam
+                        c.Phone,
+                        c.Account.Email,
+                        c.Point,
+                        c.Account.IsActive,
+                        ImageUrl = $"{baseUrl}{_config["ImageSettings:AccountPath"]}{c.Account.Avatar}"
+                    })
+                    .FirstOrDefaultAsync();
+
+                    if (customer == null)
+                        return NotFound("Customer not found.");
+
+                    // Kiểm tra quyền truy cập
+                    return Ok(customer);
+                }
+                else
+                {
+                    var employee = await _db.Employees
+                    .Include(c => c.Account)
+                    .Where(c => c.AccountId == accountID)
+                    .Select(c => new
+                    {
+                        c.EmployeeId,
+                        c.FullName,
+                        c.Address,
+                        c.Position,
+                        c.Salary,
+                        c.HireDate,
+                        c.BirthDate,
+                        c.Phone,
+                        c.Account.Email,
+                        c.Account.IsActive,
+                        ImageUrl = $"{baseUrl}{_config["ImageSettings:AccountPath"]}{c.Account.Avatar}",
+                    })
+                    .FirstOrDefaultAsync();
+
+                    if (employee == null) return NotFound("Employee not found.");
+                    return Ok(employee);
+
+                }
+
             }
             catch (Exception ex)
             {

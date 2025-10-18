@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 
 namespace ElectronicStore.Api.Controllers
 {
@@ -22,6 +23,19 @@ namespace ElectronicStore.Api.Controllers
             _context = context;
             _config= config;
         }
+        [HttpGet("check-voucher/{voucherCode}")]
+        public async Task<IActionResult> CheckVoucher(string voucherCode)
+        {
+            var voucher = await _context.Vouchers.FirstOrDefaultAsync(v =>
+                v.VoucherCode == voucherCode);
+            if (voucher == null)
+                return NotFound("Voucher not found");
+            if(!voucher.IsActive || voucher.StartDate > DateTime.UtcNow || voucher.EndDate < DateTime.UtcNow)
+                return BadRequest("Voucher has expired.");
+            if(voucher.Quantity <= 0)
+                return BadRequest("Voucher is out of stock");
+            return Ok("Vouch applied successfully");
+        }   
         [HttpPost("checkout/cod")]
         [Authorize]
         public async Task<IActionResult> CheckoutCOD(CheckoutCodDto dto)
