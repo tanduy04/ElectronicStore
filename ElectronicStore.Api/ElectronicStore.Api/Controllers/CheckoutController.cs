@@ -36,7 +36,7 @@ namespace ElectronicStore.Api.Controllers
                 return BadRequest("Voucher is out of stock");
             return Ok("Vouch applied successfully");
         }   
-        [HttpPost("checkout/cod")]
+        [HttpPost("cod")]
         [Authorize]
         public async Task<IActionResult> CheckoutCOD(CheckoutCodDto dto)
         {
