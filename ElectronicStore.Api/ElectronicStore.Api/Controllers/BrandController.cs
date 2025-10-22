@@ -69,6 +69,33 @@ namespace ElectronicStore.Api.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
+        [HttpGet("get-by-categoryId{id}")]
+        public IActionResult GetByCategoriesID(int id)
+        {
+            try
+            {
+                var baseUrl = $"{Request.Scheme}://{Request.Host}/";
+
+                var brand = _context.Products
+                    .Where(p => p.CategoryId == id)
+                    .Select(b => new
+                    {
+                        b.Brand.BrandId,
+                        b.Brand.BrandName,
+                        ImageUrl = $"{baseUrl}{_config["ImageSettings:BrandPath"]}{b.Brand.BrandImage}",
+                        b.Brand.IsActive
+                    })
+                    .Distinct()
+                    .ToList();
+                if (brand == null) return NotFound("Brand not found.");
+
+                return Ok(brand);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
         [HttpGet("search")]
         public IActionResult SearchByName(string name)
         {
