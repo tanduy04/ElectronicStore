@@ -69,14 +69,16 @@ namespace ElectronicStore.Api.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
-        [HttpGet("get-by-categoryId{id}")]
-        public IActionResult GetByCategoriesID(int id)
+        [HttpGet("get-by-categoryId/{id}")]
+        public IActionResult GetByCategoriesID(int id=0)
         {
             try
             {
                 var baseUrl = $"{Request.Scheme}://{Request.Host}/";
-
-                var brand = _context.Products
+                object brand = null;
+                if (id != 0)
+                {
+                    brand = _context.Products
                     .Where(p => p.CategoryId == id)
                     .Select(b => new
                     {
@@ -87,6 +89,21 @@ namespace ElectronicStore.Api.Controllers
                     })
                     .Distinct()
                     .ToList();
+                }
+                else
+                {
+                   brand = _context.Brands
+                    .Select(b => new
+                    {
+                        b.BrandId,
+                        b.BrandName,
+                        ImageUrl = $"{baseUrl}{_config["ImageSettings:BrandPath"]}{b.BrandImage}",
+                        b.IsActive
+                    })
+                    .ToList();
+                }
+
+
                 if (brand == null) return NotFound("Brand not found.");
 
                 return Ok(brand);
