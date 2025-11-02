@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace ElectronicStore.Api.Controllers
 {
+    //
     [Route("api/[controller]")]
     [ApiController]
     public class SupplierController : ControllerBase
