@@ -43,6 +43,8 @@ namespace ElectronicStore.Api.Controllers
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
+                var today = DateOnly.FromDateTime(System.DateTime.Now);
+                var now = TimeOnly.FromDateTime(System.DateTime.Now);
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
                 // 1. Lấy AccountID từ token
@@ -52,7 +54,29 @@ namespace ElectronicStore.Api.Controllers
                 // 2. Lấy giỏ hàng
                 var cartItems = await _context.Carts.Include(c => c.Product)
                     .Where(c => c.CartId == int.Parse(accountId))
+                    .AsNoTracking()
                     .ToListAsync();
+                foreach (var item in cartItems)
+                {
+                    var product = await _context.Products.FindAsync(item.ProductId);
+                    if (product == null) continue;
+                    if (product.StockQuantity < item.Quantity)
+                    {
+                        await transaction.RollbackAsync();
+                        return BadRequest($"Product {product.ProductName} is out of stock");
+                    }
+                    
+                    var flashSaleItem = await _context.FlashSaleItems
+                        .Include(fsi => fsi.FlashSale)
+                        .Where(fsi => fsi.ProductId == item.ProductId &&
+                                      fsi.FlashSale.DateSale == today &&
+                                      fsi.FlashSale.StartTime <= now &&
+                                      fsi.FlashSale.EndTime >= now &&
+                                      fsi.Quantity >= item.Quantity)
+                        .FirstOrDefaultAsync();
+                    if (flashSaleItem != null)
+                        item.Product.SellPrice = flashSaleItem.SellPrice;
+                }
                 var voucherUsed= await _context.Orders.FirstOrDefaultAsync(o => o.VoucherCode == dto.VoucherCode && o.Customer.AccountId == int.Parse(accountId));
                 if(voucherUsed != null && dto.VoucherCode != null)
                 {
@@ -131,22 +155,35 @@ namespace ElectronicStore.Api.Controllers
                 foreach (var item in cartItems)
                 {
                     var product = await _context.Products.FindAsync(item.ProductId);
-                    if (product == null) continue;
-                    if (product.StockQuantity < item.Quantity)
+                    if (item.Product.StockQuantity < item.Quantity)
                     {
                         await transaction.RollbackAsync();
-                        return BadRequest($"Product {product.ProductName} is out of stock");
+                        return BadRequest($"Product {item.Product.ProductName} is out of stock");
                     }
                     var orderDetail = new OrderDetail
                     {
                         OrderId = order.OrderId,
-                        ProductId = product.ProductId,
+                        ProductId = item.Product.ProductId,
                         Quantity = item.Quantity,
-                        UnitPrice = product.SellPrice,  // Giá tại thời điểm mua
-                        TotalPrice = product.SellPrice * item.Quantity
+                        UnitPrice = item.Product.SellPrice,  // Giá tại thời điểm mua
+                        TotalPrice = item.Product.SellPrice * item.Quantity
                     };
-                    product.StockQuantity -= item.Quantity; // Cập nhật tồn kho
+                     // Cập nhật tồn kho
                     _context.OrderDetails.Add(orderDetail);
+                    product.StockQuantity -= item.Quantity;
+                    _context.Products.Update(product);
+                    var flashSaleItem = await _context.FlashSaleItems
+                        .Include(fsi => fsi.FlashSale)
+                        .Where(fsi => fsi.ProductId == item.ProductId &&
+                                      fsi.FlashSale.DateSale == today &&
+                                      fsi.FlashSale.StartTime <= now &&
+                                      fsi.FlashSale.EndTime >= now &&
+                                      fsi.Quantity >= item.Quantity)
+                        .FirstOrDefaultAsync();
+                    if (flashSaleItem != null)
+                        flashSaleItem.Quantity -= item.Quantity;
+                    _context.SaveChanges();
+
                 }
 
 
@@ -165,7 +202,10 @@ namespace ElectronicStore.Api.Controllers
                 _context.Payments.Add(payment);
 
                 // 8. Xóa giỏ hàng sau khi đặt hàng
-                _context.Carts.RemoveRange(cartItems);
+                var CartItems = await _context.Carts
+                    .Where(c => c.CartId == int.Parse(accountId))
+                    .ToListAsync();
+                _context.Carts.RemoveRange(CartItems);
 
                 // Lưu tất cả thay đổi
                 await _context.SaveChangesAsync();
@@ -187,6 +227,8 @@ namespace ElectronicStore.Api.Controllers
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
+                var today = DateOnly.FromDateTime(System.DateTime.Now);
+                var now = TimeOnly.FromDateTime(System.DateTime.Now);
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
                 var accountId = User.Claims.FirstOrDefault(c => c.Type == "AccountID")?.Value;
@@ -199,8 +241,29 @@ namespace ElectronicStore.Api.Controllers
                 var cartItems = await _context.Carts
                     .Include(c => c.Product)
                     .Where(c => c.CartId == int.Parse(accountId))
+                    .AsNoTracking()
                     .ToListAsync();
+                foreach (var item in cartItems)
+                {
+                    var product = await _context.Products.FindAsync(item.ProductId);
+                    if (product == null) continue;
+                    if (product.StockQuantity < item.Quantity)
+                    {
+                        await transaction.RollbackAsync();
+                        return BadRequest($"Product {product.ProductName} is out of stock");
+                    }
 
+                    var flashSaleItem = await _context.FlashSaleItems
+                        .Include(fsi => fsi.FlashSale)
+                        .Where(fsi => fsi.ProductId == item.ProductId &&
+                                      fsi.FlashSale.DateSale == today &&
+                                      fsi.FlashSale.StartTime <= now &&
+                                      fsi.FlashSale.EndTime >= now &&
+                                      fsi.Quantity >= item.Quantity)
+                        .FirstOrDefaultAsync();
+                    if (flashSaleItem != null)
+                        item.Product.SellPrice = flashSaleItem.SellPrice;
+                }
                 if (!cartItems.Any()) return BadRequest("Cart is empty.");
                 decimal discountPoint = 0;
                 if (dto.usePoint == true)
@@ -278,13 +341,28 @@ namespace ElectronicStore.Api.Controllers
                         OrderId = order.OrderId,
                         ProductId = product.ProductId,
                         Quantity = item.Quantity,
-                        UnitPrice = product.SellPrice,  // Giá tại thời điểm mua
-                        TotalPrice = product.SellPrice * item.Quantity
+                        UnitPrice = item.Product.SellPrice,  // Giá tại thời điểm mua
+                        TotalPrice = item.Product.SellPrice * item.Quantity
                     };
-                    product.StockQuantity -= item.Quantity; // Cập nhật tồn kho
                     _context.OrderDetails.Add(orderDetail);
+                    product.StockQuantity -= item.Quantity;
+                    _context.Products.Update(product);
+                    var flashSaleItem = await _context.FlashSaleItems
+                        .Include(fsi => fsi.FlashSale)
+                        .Where(fsi => fsi.ProductId == item.ProductId &&
+                                      fsi.FlashSale.DateSale == today &&
+                                      fsi.FlashSale.StartTime <= now &&
+                                      fsi.FlashSale.EndTime >= now &&
+                                      fsi.Quantity >= item.Quantity)
+                        .FirstOrDefaultAsync();
+                    if (flashSaleItem != null)
+                        flashSaleItem.Quantity -= item.Quantity;
+                    _context.SaveChanges();
                 }
-                _context.Carts.RemoveRange(cartItems);
+                var Cart = await _context.Carts
+                    .Where(c => c.CartId == int.Parse(accountId))
+                    .ToListAsync();
+                _context.Carts.RemoveRange(Cart);
                 await _context.SaveChangesAsync();
 
                 var config = _config.GetSection("VNPay");
@@ -357,8 +435,6 @@ namespace ElectronicStore.Api.Controllers
                     PaymentDate = DateTime.Now
                 });
 
-                var cartItems = _context.Carts.Where(c => c.CartId == order.CustomerId);
-                _context.Carts.RemoveRange(cartItems);
 
                 await _context.SaveChangesAsync();
                 await _mailService.CreateOrderSuccess(order.Customer.Account.Email, orderCode);

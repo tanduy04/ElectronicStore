@@ -41,18 +41,34 @@ namespace ElectronicStore.Api.Controllers
 
             if (!cart.Any())
                 return Ok(new { Message = "Your cart is empty." });
-
-            var result = cart.Select(c => new
+            var resultList = new List<object>();
+            foreach (var c in cart)
             {
-                c.CartId,
-                c.ProductId,
-                c.Product.ProductName,
-                c.Product.SellPrice,
-                MainImage = _context.ProductImages.FirstOrDefault(x => x.ProductId == c.ProductId && x.ImageMain == true) is ProductImage m ? $"{baseUrl}{_config["ImageSettings:ProductPath"]}{m.UrlProductImage}" : null,
-                c.Quantity
-            });
+                var today = DateOnly.FromDateTime(System.DateTime.Now);
+                var now = TimeOnly.FromDateTime(System.DateTime.Now);
+                var flashSaleItem = await _context.FlashSaleItems
+                    .Include(fsi => fsi.FlashSale)
+                    .Where(fsi => fsi.ProductId == c.ProductId &&
+                                  fsi.FlashSale.DateSale == today &&
+                                  fsi.FlashSale.StartTime <= now &&
+                                  fsi.FlashSale.EndTime >= now &&
+                                  fsi.Quantity >= c.Quantity)
+                    .FirstOrDefaultAsync();
+                if (flashSaleItem != null)
+                    c.Product.SellPrice = flashSaleItem.SellPrice;
+                resultList.Add(new
+                {
+                    c.CartId,
+                    c.ProductId,
+                    c.Product.ProductName,
+                    c.Product.SellPrice,
+                    MainImage = _context.ProductImages.FirstOrDefault(x => x.ProductId == c.ProductId && x.ImageMain == true) is ProductImage m ? $"{baseUrl}{_config["ImageSettings:ProductPath"]}{m.UrlProductImage}" : null,
+                    c.Quantity
+                });
+            }
 
-            return Ok(result);
+
+            return Ok(resultList);
         }
 
         // Add product to cart

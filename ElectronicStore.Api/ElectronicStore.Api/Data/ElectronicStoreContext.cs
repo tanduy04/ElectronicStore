@@ -35,6 +35,10 @@ public partial class ElectronicStoreContext : DbContext
 
     public virtual DbSet<FavoriteProduct> FavoriteProducts { get; set; }
 
+    public virtual DbSet<FlashSale> FlashSales { get; set; }
+
+    public virtual DbSet<FlashSaleItem> FlashSaleItems { get; set; }
+
     public virtual DbSet<Import> Imports { get; set; }
 
     public virtual DbSet<ImportDetail> ImportDetails { get; set; }
@@ -242,6 +246,37 @@ public partial class ElectronicStoreContext : DbContext
                 .HasForeignKey(d => d.ProductId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Favorite_Product");
+        });
+
+        modelBuilder.Entity<FlashSale>(entity =>
+        {
+            entity.ToTable("FlashSale");
+
+            entity.Property(e => e.FlashSaleId).HasColumnName("FlashSaleID");
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.FlashSaleName).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<FlashSaleItem>(entity =>
+        {
+            entity.HasKey(e => e.ItemId);
+
+            entity.ToTable("FlashSaleItem");
+
+            entity.Property(e => e.ItemId).HasColumnName("ItemID");
+            entity.Property(e => e.FlashSaleId).HasColumnName("FlashSaleID");
+            entity.Property(e => e.ProductId).HasColumnName("ProductID");
+            entity.Property(e => e.SellPrice).HasColumnType("decimal(18, 2)");
+
+            entity.HasOne(d => d.FlashSale).WithMany(p => p.FlashSaleItems)
+                .HasForeignKey(d => d.FlashSaleId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_FlashSaleItem_FlashSale");
+
+            entity.HasOne(d => d.Product).WithMany(p => p.FlashSaleItems)
+                .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_FlashSaleItem_Product");
         });
 
         modelBuilder.Entity<Import>(entity =>

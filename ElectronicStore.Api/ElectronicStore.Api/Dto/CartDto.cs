@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using ElectronicStore.Api.Data;
+using System.ComponentModel.DataAnnotations;
 
 namespace ElectronicStore.Api.Dto
 {
@@ -19,6 +20,18 @@ namespace ElectronicStore.Api.Dto
         [Required]
         [Range(0, int.MaxValue)]
         public int Quantity { get; set; }
+    }
+    public class CartDto
+    {
+        public int CartId { get; set; }
+
+        public int ProductId { get; set; }
+
+        public int Quantity { get; set; }
+
+        
+
+        public Product Product { get; set; } = null!;
     }
 
 }

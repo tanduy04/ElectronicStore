@@ -95,7 +95,18 @@ namespace ElectronicStore.Api.Controllers
                 if (product == null) return NotFound("Product not found.");
 
                 var baseUrl = GetBaseUrl();
-
+                var today = DateOnly.FromDateTime(System.DateTime.Now);
+                var now = TimeOnly.FromDateTime(System.DateTime.Now);
+                var flashSaleItem = await _context.FlashSaleItems
+                    .Include(fsi => fsi.FlashSale)
+                    .Where(fsi => fsi.ProductId == product.ProductId &&
+                                  fsi.FlashSale.DateSale == today &&
+                                  fsi.FlashSale.StartTime <= now &&
+                                  fsi.FlashSale.EndTime >= now &&
+                                  fsi.Quantity>0)
+                    .FirstOrDefaultAsync();
+                if (flashSaleItem != null)
+                    product.SellPrice = flashSaleItem.SellPrice;
                 return Ok(new
                 {
                     product.ProductId,
@@ -341,7 +352,18 @@ namespace ElectronicStore.Api.Controllers
             foreach (var p in products)
             {
                 var reviews = await GetReviewByProductId(p.ProductId);
-
+                var today = DateOnly.FromDateTime(System.DateTime.Now);
+                var now = TimeOnly.FromDateTime(System.DateTime.Now);
+                var flashSaleItem = await _context.FlashSaleItems
+                    .Include(fsi => fsi.FlashSale)
+                    .Where(fsi => fsi.ProductId == p.ProductId &&
+                                  fsi.FlashSale.DateSale == today &&
+                                  fsi.FlashSale.StartTime <= now &&
+                                  fsi.FlashSale.EndTime >= now &&
+                                  fsi.Quantity > 0)
+                    .FirstOrDefaultAsync();
+                if (flashSaleItem != null)
+                    p.SellPrice = flashSaleItem.SellPrice;
                 resultList.Add(new
                 {
                     p.ProductId,
