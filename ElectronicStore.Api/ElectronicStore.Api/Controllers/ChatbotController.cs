@@ -201,7 +201,7 @@ namespace ElectronicStore.Api.Controllers
                          - ""price"" phải là một số (integer) biểu diễn VND (ví dụ: 2390000).
                          - KHÔNG in thêm chú thích, ký hiệu tiền tệ, hay văn bản nào khác cùng với JSON.
                      4) Nếu KHÔNG có sản phẩm liên quan, phần PRODUCTS phải là [] (một mảng JSON rỗng).
-
+                        trả về tối đa 3 sản phẩm thôi nhé
                      Nếu bạn không trả lời về sản phẩm thì vẫn phải tuân thủ định dạng: phần PRODUCTS = [] sau dòng phân tách.
 
                      SỬ DỤNG THÔNG TIN DỮ LIỆU SẢN PHẨM dưới đây để tạo ra output (nhưng KHÔNG nói 'cơ sở dữ liệu'):
