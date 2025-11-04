@@ -103,9 +103,9 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("OpenCorsPolicy", policy =>
     {
-        policy.AllowAnyOrigin()   
-              .AllowAnyHeader()   
-              .AllowAnyMethod();  
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
     });
 });
 builder.Services.AddTransient<EmailService>();
@@ -139,6 +139,8 @@ builder.Services.Configure<GeminiConfig>(
     builder.Configuration.GetSection("Gemini"));
 builder.Services.AddSingleton(sp =>
     sp.GetRequiredService<IOptions<GeminiConfig>>().Value);
+
+
 
 // 3. Đăng ký Dịch vụ Tìm kiếm Vector (Quan trọng nhất)
 builder.Services.AddScoped<IVectorSearchService, VectorSearchService>();

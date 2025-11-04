@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
+using Microsoft.Identity.Client;
 
 namespace ElectronicStore.Api.Controllers
 {
@@ -17,11 +18,11 @@ namespace ElectronicStore.Api.Controllers
         private readonly ElectronicStoreContext _context;
         private readonly IConfiguration _config;
 
-        public CheckoutController(ElectronicStoreContext context, IConfiguration config,EmailService mailService)
+        public CheckoutController(ElectronicStoreContext context, IConfiguration config, EmailService mailService)
         {
-            _mailService= mailService;
+            _mailService = mailService;
             _context = context;
-            _config= config;
+            _config = config;
         }
         [HttpGet("check-voucher/{voucherCode}")]
         public async Task<IActionResult> CheckVoucher(string voucherCode)
@@ -30,15 +31,15 @@ namespace ElectronicStore.Api.Controllers
                 v.VoucherCode == voucherCode);
             if (voucher == null)
                 return NotFound("Voucher not found");
-            if(!voucher.IsActive || voucher.StartDate > DateTime.UtcNow || voucher.EndDate < DateTime.UtcNow)
+            if (!voucher.IsActive || voucher.StartDate > DateTime.UtcNow || voucher.EndDate < DateTime.UtcNow)
                 return BadRequest("Voucher has expired.");
-            if(voucher.Quantity <= 0)
+            if (voucher.Quantity <= 0)
                 return BadRequest("Voucher is out of stock");
             return Ok("Vouch applied successfully");
-        }   
+        }
         [HttpPost("cod")]
         [Authorize]
-        public async Task<IActionResult> CheckoutCOD(CheckoutCodDto dto)
+        public async Task<IActionResult> CheckoutCOD(CheckoutCartDto dto)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -65,7 +66,7 @@ namespace ElectronicStore.Api.Controllers
                         await transaction.RollbackAsync();
                         return BadRequest($"Product {product.ProductName} is out of stock");
                     }
-                    
+
                     var flashSaleItem = await _context.FlashSaleItems
                         .Include(fsi => fsi.FlashSale)
                         .Where(fsi => fsi.ProductId == item.ProductId &&
@@ -77,8 +78,8 @@ namespace ElectronicStore.Api.Controllers
                     if (flashSaleItem != null)
                         item.Product.SellPrice = flashSaleItem.SellPrice;
                 }
-                var voucherUsed= await _context.Orders.FirstOrDefaultAsync(o => o.VoucherCode == dto.VoucherCode && o.Customer.AccountId == int.Parse(accountId));
-                if(voucherUsed != null && dto.VoucherCode != null)
+                var voucherUsed = await _context.Orders.FirstOrDefaultAsync(o => o.VoucherCode == dto.VoucherCode && o.Customer.AccountId == int.Parse(accountId));
+                if (voucherUsed != null && dto.VoucherCode != null)
                 {
                     return BadRequest("You have used this voucher");
                 }
@@ -168,7 +169,7 @@ namespace ElectronicStore.Api.Controllers
                         UnitPrice = item.Product.SellPrice,  // Giá tại thời điểm mua
                         TotalPrice = item.Product.SellPrice * item.Quantity
                     };
-                     // Cập nhật tồn kho
+                    // Cập nhật tồn kho
                     _context.OrderDetails.Add(orderDetail);
                     product.StockQuantity -= item.Quantity;
                     _context.Products.Update(product);
@@ -222,7 +223,7 @@ namespace ElectronicStore.Api.Controllers
         }
         [HttpPost("CreateVnPayPayment")]
         [Authorize(Roles = "Customer")]
-        public async Task<IActionResult> CreateVnPayPayment(CheckoutCodDto dto)
+        public async Task<IActionResult> CreateVnPayPayment(CheckoutCartDto dto)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -284,7 +285,7 @@ namespace ElectronicStore.Api.Controllers
                         && v.StartDate <= DateTime.UtcNow
                         && v.EndDate >= DateTime.UtcNow
                         && v.IsActive == true
-                        && v.Quantity>0);
+                        && v.Quantity > 0);
                     if (voucher != null)
                     {
                         if (voucher.DiscountType == "percent")
@@ -397,7 +398,264 @@ namespace ElectronicStore.Api.Controllers
             }
         }
 
+        [HttpPost("Buy-now")]
+        public async Task<IActionResult> ByNow(CheckoutProductDto dto)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+                // lay thong tin khach hang
+                var customerExist = await _context.Customers.FirstOrDefaultAsync(c => c.Phone == dto.PhoneNumber);
+                if (customerExist == null)
+                {
+                    var newcustomer = new Customer();
+                    newcustomer.AccountId = null;
+                    newcustomer.FullName = dto.FullName;
+                    newcustomer.Phone = dto.PhoneNumber;
+                    newcustomer.Address = dto.Address;
+                    newcustomer.Point = 0;
+                    newcustomer.Address = dto.Address;
+                    newcustomer.CreatedAt = DateTime.Now;
+                    _context.Customers.Add(newcustomer);
+                    await _context.SaveChangesAsync();
+                }
+                var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Phone == dto.PhoneNumber);
+                var today = DateOnly.FromDateTime(System.DateTime.Now);
+                var now = TimeOnly.FromDateTime(System.DateTime.Now);
 
+                // 1. Lấy AccountID từ token
+
+
+                var product = await _context.Products.AsNoTracking().FirstOrDefaultAsync(p => p.ProductId == dto.ProductId);
+                if (product == null)
+                    return NotFound("Product not found.");
+                if (product.StockQuantity < dto.Quantity)
+                {
+                    await transaction.RollbackAsync();
+                    return BadRequest($"Product {product.ProductName} is out of stock");
+                }
+
+                var flashSaleItem = await _context.FlashSaleItems
+                    .Include(fsi => fsi.FlashSale)
+                    .Where(fsi => fsi.ProductId == dto.ProductId &&
+                                  fsi.FlashSale.DateSale == today &&
+                                  fsi.FlashSale.StartTime <= now &&
+                                  fsi.FlashSale.EndTime >= now &&
+                                  fsi.Quantity >= dto.Quantity)
+                    .FirstOrDefaultAsync();
+                if (flashSaleItem != null)
+                    product.SellPrice = flashSaleItem.SellPrice;
+
+                var voucherUsed = await _context.Orders.FirstOrDefaultAsync(o => o.VoucherCode == dto.VoucherCode && o.CustomerId == customer.CustomerId);
+                if (voucherUsed != null && dto.VoucherCode != null)
+                {
+                    return BadRequest("You have used this voucher");
+                }
+                decimal discountPoint = 0;
+                if (dto.usePoint == true)
+                {
+                    if (customer.Point <= 0) return BadRequest("You have no points to use");
+                    discountPoint = customer.Point * 10000;
+                    customer.Point = 0;
+                    _context.Customers.Update(customer);
+
+                }
+                // 3. Tạo OrderCode
+                string orderCode = await GenerateOrderCodeAsync();
+
+                // 4. Tính tổng tiền và tạo đơn hàng
+                decimal totalAmount = dto.Quantity * product.SellPrice;
+                decimal discountVoucher = 0;
+                if (dto.VoucherCode != null)
+                {
+                    var voucher = _context.Vouchers.FirstOrDefault(v =>
+                        v.VoucherCode == dto.VoucherCode
+                        && v.StartDate <= DateTime.UtcNow
+                        && v.EndDate >= DateTime.UtcNow
+                        && v.IsActive == true
+                        && v.Quantity > 0
+                        )
+                        ;
+                    if (voucher != null)
+                    {
+                        if (voucher.DiscountType == "percent")
+                        {
+                            discountVoucher = totalAmount * (voucher.DiscountValue / 100);
+                        }
+                        else if (voucher.DiscountType == "amount")
+                        {
+                            discountVoucher = voucher.DiscountValue;
+                        }
+
+                    }
+                    else
+                    {
+                        return BadRequest("Invalid voucher code");
+                    }
+                }
+                totalAmount = totalAmount - discountVoucher - discountPoint;
+
+                if (dto.method == "COD")
+                {
+
+
+                    var order = new Order
+                    {
+                        OrderCode = orderCode,
+                        CustomerId = customer.CustomerId,
+                        OrderDate = DateTime.Now,
+                        PhoneNumber = dto.PhoneNumber,
+                        FullName = dto.FullName,
+                        ShippingAddress = dto.Address,
+                        Status = "Pending",
+                        PaymentMethod = "COD",
+                        VoucherCode = dto.VoucherCode,
+                        DiscountVoucher = discountVoucher,
+                        UsePoint = dto.usePoint,
+                        DiscountPoint = discountPoint,
+                        // lấy từ khách hàng nếu có
+                        TotalAmount = totalAmount
+                    };
+
+                    _context.Orders.Add(order);
+                    await _context.SaveChangesAsync(); // để có OrderID
+
+                    // 5. Lưu chi tiết đơn hàng (lấy giá từ Product)
+
+
+                    if (product.StockQuantity < dto.Quantity)
+                    {
+                        await transaction.RollbackAsync();
+                        return BadRequest($"Product {product.ProductName} is out of stock");
+                    }
+                    var orderDetail = new OrderDetail
+                    {
+                        OrderId = order.OrderId,
+                        ProductId = dto.ProductId,
+                        Quantity = dto.Quantity,
+                        UnitPrice = product.SellPrice,  // Giá tại thời điểm mua
+                        TotalPrice = product.SellPrice * dto.Quantity
+                    };
+                    var productToUpdate = await _context.Products.FindAsync(dto.ProductId);
+                    // Cập nhật tồn kho
+                    _context.OrderDetails.Add(orderDetail);
+                    productToUpdate.StockQuantity -= dto.Quantity;
+                    _context.Products.Update(productToUpdate);
+
+                    if (flashSaleItem != null)
+                        flashSaleItem.Quantity -= dto.Quantity;
+                    _context.SaveChanges();
+
+
+
+
+                    // 7. Lưu thông tin thanh toán COD
+                    var payment = new Payment
+                    {
+                        OrderId = order.OrderId,
+                        CustomerId = order.CustomerId,
+                        Amount = totalAmount,
+                        Status = "UnPaid",
+                        Method = "COD",
+                        TransactionCode = null,
+                        PaymentDate = null
+                    };
+
+                    _context.Payments.Add(payment);
+
+
+
+                    // Lưu tất cả thay đổi
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    var mail = customer?.Account?.Email;
+                    if (mail != null)
+                        await _mailService.CreateOrderSuccess(mail, orderCode);
+
+                    return Ok(new { OrderCode = orderCode, Total = totalAmount, DiscountVoucher = discountVoucher, DiscountPoint = discountPoint, Message = "Order successful" });
+                }
+                else
+                {
+                    var order = new Order
+                    {
+                        CustomerId = customer.CustomerId,
+                        OrderCode = orderCode,
+                        OrderDate = DateTime.Now,
+                        Status = "Pending",
+                        TotalAmount = totalAmount,
+                        PaymentMethod = "VNPay",
+                        PhoneNumber = dto.PhoneNumber,
+                        FullName = dto.FullName,
+                        ShippingAddress = dto.Address,
+                        VoucherCode = dto.VoucherCode,
+                        DiscountVoucher = discountVoucher,
+                        UsePoint = dto.usePoint,
+                        DiscountPoint = discountPoint
+                    };
+                    _context.Orders.Add(order);
+                    await _context.SaveChangesAsync();
+
+
+
+                    if (product.StockQuantity < dto.Quantity)
+                    {
+                        await transaction.RollbackAsync();
+                        return BadRequest($"Product {product.ProductName} is out of stock");
+                    }
+                    var orderDetail = new OrderDetail
+                    {
+                        OrderId = order.OrderId,
+                        ProductId = dto.ProductId,
+                        Quantity = dto.Quantity,
+                        UnitPrice = product.SellPrice,  // Giá tại thời điểm mua
+                        TotalPrice = product.SellPrice * dto.Quantity
+                    };
+                    _context.OrderDetails.Add(orderDetail);
+                    var productToUpdate = await _context.Products.FindAsync(dto.ProductId);
+                    productToUpdate.StockQuantity -= dto.Quantity;
+                    _context.Products.Update(productToUpdate);
+
+                    if (flashSaleItem != null)
+                        flashSaleItem.Quantity -= dto.Quantity;
+                    _context.SaveChanges();
+
+
+                    await _context.SaveChangesAsync();
+
+                    var config = _config.GetSection("VNPay");
+
+                    string vnp_Returnurl = config["ReturnUrl"]; // Callback
+                    string vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
+                    string vnp_TmnCode = config["TmnCode"]; // mã merchant
+                    string vnp_HashSecret = config["HashSecret"]; // secret key
+
+                    VnPayLibrary vnpay = new VnPayLibrary();
+                    vnpay.AddRequestData("vnp_Version", "2.1.0");
+                    vnpay.AddRequestData("vnp_Command", "pay");
+                    vnpay.AddRequestData("vnp_TmnCode", vnp_TmnCode);
+                    vnpay.AddRequestData("vnp_Amount", ((long)(totalAmount * 100)).ToString());
+                    vnpay.AddRequestData("vnp_CreateDate", DateTime.Now.ToString("yyyyMMddHHmmss"));
+                    vnpay.AddRequestData("vnp_CurrCode", "VND");
+                    vnpay.AddRequestData("vnp_IpAddr", HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1");
+                    vnpay.AddRequestData("vnp_Locale", "vn");
+                    vnpay.AddRequestData("vnp_OrderInfo", "Thanh toan don hang");
+                    vnpay.AddRequestData("vnp_OrderType", "other");
+                    vnpay.AddRequestData("vnp_ReturnUrl", vnp_Returnurl);
+                    vnpay.AddRequestData("vnp_TxnRef", order.OrderCode);
+                    await transaction.CommitAsync();
+                    string paymentUrl = vnpay.CreateRequestUrl(vnp_Url, vnp_HashSecret);
+
+                    return Ok(new { PaymentUrl = paymentUrl });
+                }
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return StatusCode(500, "Error creating order " + ex.Message);
+            }
+        }
 
         [HttpGet("VnPayReturn")]
         public async Task<IActionResult> VnPayReturn([FromQuery] Dictionary<string, string> vnpParams)
@@ -437,7 +695,9 @@ namespace ElectronicStore.Api.Controllers
 
 
                 await _context.SaveChangesAsync();
-                await _mailService.CreateOrderSuccess(order.Customer.Account.Email, orderCode);
+                var mail = order.Customer?.Account?.Email;
+                if (mail != null)
+                    await _mailService.CreateOrderSuccess(mail, orderCode);
 
                 return Ok(new
                 {
@@ -463,6 +723,7 @@ namespace ElectronicStore.Api.Controllers
 
             return BadRequest("Payment failed");
         }
+        
         private async Task<string> GenerateOrderCodeAsync()
         {
             var today = DateTime.Now.ToString("ddMMyyyy");
