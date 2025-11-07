@@ -300,8 +300,7 @@ HƯỚNG DẪN:
                     {
                         var k = kw?.Trim();
                         if (string.IsNullOrEmpty(k)) continue;
-                        q = q.Where(p => EF.Functions.Like(p.ProductName, $"%{k}%") ||
-                                         EF.Functions.Like(p.Description, $"%{k}%"));
+                        q = q.Where(p => EF.Functions.Like(p.ProductName, $"%{k}%"));
                     }
                 }
 
@@ -314,12 +313,17 @@ HƯỚNG DẪN:
                     MainImage = p.ProductImages.Where(i => i.ImageMain).Select(i => i.UrlProductImage).FirstOrDefault()
                 }).Take(limit).ToListAsync();
 
-                var productsForClient = rows.Select(r => new
+                var productsForClient = rows.Select(r =>
                 {
-                    name = r.ProductName,
-                    description = r.Description,
-                    price = r.SellPrice,
-                    imageUrl = string.IsNullOrEmpty(r.MainImage) ? null : $"{baseUrl}{imagePath}{r.MainImage}"
+                    // Parse description từ JSON sang text
+
+
+                    return new
+                    {
+                        name = r.ProductName,
+                        price = r.SellPrice,
+                        imageUrl = string.IsNullOrEmpty(r.MainImage) ? null : $"{baseUrl}{imagePath}{r.MainImage}"
+                    };
                 }).ToList();
 
                 // ----------------------------------------------------

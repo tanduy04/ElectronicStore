@@ -4,6 +4,7 @@ using ElectronicStore.Api.Helper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace ElectronicStore.Api.Controllers
 {
@@ -103,15 +104,31 @@ namespace ElectronicStore.Api.Controllers
                                   fsi.FlashSale.DateSale == today &&
                                   fsi.FlashSale.StartTime <= now &&
                                   fsi.FlashSale.EndTime >= now &&
-                                  fsi.Quantity>0)
+                                  fsi.Quantity > 0)
                     .FirstOrDefaultAsync();
                 if (flashSaleItem != null)
                     product.SellPrice = flashSaleItem.SellPrice;
+
+                // Parse description from JSON
+                Dictionary<string, string>? descriptionObj = null;
+                if (!string.IsNullOrEmpty(product.Description))
+                {
+                    try
+                    {
+                        descriptionObj = JsonSerializer.Deserialize<Dictionary<string, string>>(product.Description);
+                    }
+                    catch
+                    {
+                        // If not JSON, keep as is
+                        descriptionObj = new Dictionary<string, string> { { "Description", product.Description } };
+                    }
+                }
+
                 return Ok(new
                 {
                     product.ProductId,
                     product.ProductName,
-                    product.Description,
+                    Description = descriptionObj,
                     product.CostPrice,
                     product.SellPrice,
                     product.OriginalPrice,
@@ -122,8 +139,8 @@ namespace ElectronicStore.Api.Controllers
                     product.Category.CategoryName,
                     product.IsActive,
                     product.ManufactureYear,
-                    SoldQuantity= _context.OrderDetails.Where(od => od.ProductId == product.ProductId).Sum(od => (int?)od.Quantity) ?? 0,
-                    ProductReview= await GetReviewByProductId(id),
+                    SoldQuantity = _context.OrderDetails.Where(od => od.ProductId == product.ProductId).Sum(od => (int?)od.Quantity) ?? 0,
+                    ProductReview = await GetReviewByProductId(id),
                     MainImage = product.ProductImages.FirstOrDefault(i => i.ImageMain) is ProductImage m ? $"{baseUrl}{_config["ImageSettings:ProductPath"]}{m.UrlProductImage}" : null,
                     SubImages = product.ProductImages.Where(i => !i.ImageMain).Select(i => $"{baseUrl}{_config["ImageSettings:ProductPath"]}{i.UrlProductImage}").ToList(),
                     product.CreatedAt,
@@ -135,7 +152,7 @@ namespace ElectronicStore.Api.Controllers
                 return StatusCode(500, "Internal server error: " + ex.Message);
             }
         }
-        
+
 
         // POST: api/products
         [HttpPost]
@@ -150,12 +167,16 @@ namespace ElectronicStore.Api.Controllers
 
                 if (dto.SubImages != null && dto.SubImages.Any(i => !ImageHelper.IsImageFile(i)))
                     return BadRequest("All sub-images must be valid image files.");
-                if (dto.OriginalPrice == null || dto.OriginalPrice<=0)
+                if (dto.OriginalPrice == null || dto.OriginalPrice <= 0)
                     dto.OriginalPrice = dto.SellPrice;
+
+                // Parse description text to JSON
+                string? descriptionJson = ParseDescriptionToJson(dto.Description);
+
                 var product = new Product
                 {
                     ProductName = dto.ProductName,
-                    Description = dto.Description,
+                    Description = descriptionJson,
                     ConsumptionCapacity = dto.ConsumptionCapacity,
                     Maintenance = dto.Maintenance,
                     CostPrice = dto.CostPrice,
@@ -200,7 +221,36 @@ namespace ElectronicStore.Api.Controllers
                 return StatusCode(500, "Internal server error: " + ex.Message);
             }
         }
+        //[HttpPatch("{id}/description")]
+        //public async Task<IActionResult> UpdateDescription(int id, [FromBody] UpdateDescriptionDto dto)
+        //{
+        //    try
+        //    {
+        //        var product = await _context.Products.FirstOrDefaultAsync(p => p.ProductId == id);
+        //        if (product == null) return NotFound("Product not found.");
 
+        //        // Parse description text to JSON
+        //        string? descriptionJson = ParseDescriptionToJson(dto.Description);
+
+        //        product.Description = descriptionJson;
+        //        product.UpdatedAt = DateTime.UtcNow;
+
+        //        await _context.SaveChangesAsync();
+
+        //        return Ok(new
+        //        {
+        //            message = "Description updated successfully",
+        //            productId = id,
+        //            description = descriptionJson != null
+        //                ? JsonSerializer.Deserialize<Dictionary<string, string>>(descriptionJson)
+        //                : null
+        //        });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500, "Internal server error: " + ex.Message);
+        //    }
+        //}
         // PUT: api/products/{id}
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin,Employee")]
@@ -212,8 +262,12 @@ namespace ElectronicStore.Api.Controllers
                 if (product == null) return NotFound("Product not found.");
                 if (dto.OriginalPrice == null || dto.OriginalPrice <= 0)
                     dto.OriginalPrice = dto.SellPrice;
+
+                // Parse description text to JSON
+                string? descriptionJson = ParseDescriptionToJson(dto.Description);
+
                 product.ProductName = dto.ProductName;
-                product.Description = dto.Description;
+                product.Description = descriptionJson;
                 product.ConsumptionCapacity = dto.ConsumptionCapacity;
                 product.Maintenance = dto.Maintenance;
                 product.CostPrice = dto.CostPrice;
@@ -303,7 +357,7 @@ namespace ElectronicStore.Api.Controllers
                         Rating = r.Rating,
                         ParentId = r.ParentId,
                         Content = r.Content,
-                        IsActive=r.IsActive
+                        IsActive = r.IsActive
                     })
                     .ToListAsync();
             if (reviews == null || reviews.Count == 0)
@@ -364,11 +418,27 @@ namespace ElectronicStore.Api.Controllers
                     .FirstOrDefaultAsync();
                 if (flashSaleItem != null)
                     p.SellPrice = flashSaleItem.SellPrice;
+
+                // Parse description from JSON
+                Dictionary<string, string>? descriptionObj = null;
+                if (!string.IsNullOrEmpty(p.Description))
+                {
+                    try
+                    {
+                        descriptionObj = JsonSerializer.Deserialize<Dictionary<string, string>>(p.Description);
+                    }
+                    catch
+                    {
+                        // If not JSON, keep as is
+                        descriptionObj = new Dictionary<string, string> { { "Description", p.Description } };
+                    }
+                }
+
                 resultList.Add(new
                 {
                     p.ProductId,
                     p.ProductName,
-                    p.Description,
+                    Description = descriptionObj,
                     p.CostPrice,
                     p.SellPrice,
                     p.OriginalPrice,
@@ -404,6 +474,36 @@ namespace ElectronicStore.Api.Controllers
                 TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize),
                 Data = resultList
             };
+        }
+
+        // Helper method to parse plain text description to JSON
+        // Input format:
+        // Công suất: 1000W
+        // Năm sản xuất: 2024
+        // Bảo hành: 12 tháng
+        private string? ParseDescriptionToJson(string? descriptionText)
+        {
+            if (string.IsNullOrWhiteSpace(descriptionText))
+                return null;
+
+            var dict = new Dictionary<string, string>();
+            var lines = descriptionText.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var line in lines)
+            {
+                var parts = line.Split(new[] { ':' }, 2); // Chỉ split tại dấu ':' đầu tiên
+                if (parts.Length == 2)
+                {
+                    var key = parts[0].Trim();
+                    var value = parts[1].Trim();
+                    if (!string.IsNullOrEmpty(key) && !string.IsNullOrEmpty(value))
+                    {
+                        dict[key] = value;
+                    }
+                }
+            }
+
+            return dict.Any() ? JsonSerializer.Serialize(dict) : null;
         }
     }
 }

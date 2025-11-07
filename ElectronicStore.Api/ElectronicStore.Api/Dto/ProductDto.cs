@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 
 namespace ElectronicStore.Api.Dto
 {
@@ -6,9 +7,14 @@ namespace ElectronicStore.Api.Dto
     {
         [Required(ErrorMessage = "ProductName is required")]
         public string ProductName { get; set; }
-        [Required(ErrorMessage = "ConsumptionCapacity is required")]
 
-        public string Description { get; set; }
+        // Description as plain text - mỗi dòng format: "Key: Value"
+        // Ví dụ:
+        // Công suất: 1000W
+        // Năm sản xuất: 2024
+        // Bảo hành: 12 tháng
+        public string? Description { get; set; }
+
         [Required(ErrorMessage = "ConsumptionCapacity is required")]
 
         public int ConsumptionCapacity { get; set; }
