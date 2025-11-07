@@ -55,6 +55,8 @@ public partial class ElectronicStoreContext : DbContext
 
     public virtual DbSet<ProductReview> ProductReviews { get; set; }
 
+    public virtual DbSet<QuestionAndAnswer> QuestionAndAnswers { get; set; }
+
     public virtual DbSet<Role> Roles { get; set; }
 
     public virtual DbSet<Supplier> Suppliers { get; set; }
@@ -254,7 +256,9 @@ public partial class ElectronicStoreContext : DbContext
 
             entity.Property(e => e.FlashSaleId).HasColumnName("FlashSaleID");
             entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.EndTime).HasPrecision(0);
             entity.Property(e => e.FlashSaleName).HasMaxLength(100);
+            entity.Property(e => e.StartTime).HasPrecision(0);
         });
 
         modelBuilder.Entity<FlashSaleItem>(entity =>
@@ -266,7 +270,7 @@ public partial class ElectronicStoreContext : DbContext
             entity.Property(e => e.ItemId).HasColumnName("ItemID");
             entity.Property(e => e.FlashSaleId).HasColumnName("FlashSaleID");
             entity.Property(e => e.ProductId).HasColumnName("ProductID");
-            entity.Property(e => e.SellPrice).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.SellPrice).HasColumnType("decimal(18, 0)");
 
             entity.HasOne(d => d.FlashSale).WithMany(p => p.FlashSaleItems)
                 .HasForeignKey(d => d.FlashSaleId)
@@ -493,6 +497,15 @@ public partial class ElectronicStoreContext : DbContext
                 .HasForeignKey(d => d.ProductId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Reviews_Products");
+        });
+
+        modelBuilder.Entity<QuestionAndAnswer>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__Question__3214EC07FD488749");
+
+            entity.ToTable("QuestionAndAnswer");
+
+            entity.Property(e => e.Question).HasMaxLength(500);
         });
 
         modelBuilder.Entity<Role>(entity =>

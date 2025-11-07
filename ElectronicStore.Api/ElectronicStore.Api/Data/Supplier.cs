@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 
 namespace ElectronicStore.Api.Data;
-//
+
 public partial class Supplier
 {
     public int SupplierId { get; set; }

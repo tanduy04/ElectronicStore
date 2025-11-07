@@ -1,4 +1,4 @@
-﻿using ElectronicStore.Api.Service;
+using ElectronicStore.Api.Service;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
 using System.Text;
@@ -115,7 +115,7 @@ namespace ElectronicStore.Api.Controllers
         }
 
         // ==========================================================
-        // ***** PHƯƠNG THỨC GỬI TIN NHẮN (POST) - Giữ nguyên logic *****
+        // ***** PHƯƠNG THỨC GỬI TIN NHẮN (POST) - 2-step Gemini calls *****
         // ==========================================================
         [HttpPost("send")]
         public async Task<IActionResult> SendMessage([FromBody] ChatRequest req)
@@ -128,48 +128,42 @@ namespace ElectronicStore.Api.Controllers
             history.Add(new ChatMessage { Role = "user", Content = req.Message });
 
             // ----------------------------------------------------
-            // ***** RAG - Tìm kiếm Dữ liệu liên quan *****
+            // ***** STEP 1: Load Brands & Categories as context (không load products) *****
             // ----------------------------------------------------
-
-
-            var relevantProductsRaw = await _context.Products
-                .Select(p => new
-                {
-                    Name = p.ProductName,
-                    Description = p.Description,
-                    Price = p.SellPrice,
-                    // Select only the raw image filename/relative url from the DB
-                    MainImageUrl = p.ProductImages.Where(i => i.ImageMain).Select(i => i.UrlProductImage).FirstOrDefault()
-                })
+            var brands = await _context.Brands
+                .Where(b => b.IsActive)
+                .Select(b => new { b.BrandId, b.BrandName })
                 .ToListAsync();
 
-            // Build the full URL for images in-memory (avoid EF Core translation issues)
-            var imagePath = _config["ImageSettings:ProductPath"] ?? string.Empty;
-            var relevantProducts = relevantProductsRaw.Select(p => new
-            {
-                p.Name,
-                p.Description,
-                p.Price,
-                ImageUrl = string.IsNullOrEmpty(p.MainImageUrl) ? null : $"{baseUrl}{imagePath}{p.MainImageUrl}"
-            }).ToList();
+            var categories = await _context.Categories
+                .Where(c => c.IsActive)
+                .Select(c => new { c.CategoryId, c.CategoryName })
+                .ToListAsync();
+            var questionAndAnswer = await _context.QuestionAndAnswers
+                .Select(q => new { q.Question, q.Answer })
+                .ToListAsync();
 
-            // 4. Tạo ngữ cảnh (Context) từ dữ liệu sản phẩm
+            // 4. Tạo ngữ cảnh (Context) từ brands và categories
             var contextData = new StringBuilder();
-            contextData.AppendLine("DỮ LIỆU SẢN PHẨM TỪ CSDL:");
-            if (relevantProducts.Any())
+            contextData.AppendLine("DANH SÁCH THƯƠNG HIỆU (BRANDS):");
+            foreach (var b in brands)
             {
-                foreach (var productChatbot in relevantProducts)
-                {
-                    contextData.AppendLine($"- Tên: {productChatbot.Name}, Giá: {productChatbot.Price:N0} VND, Mô tả: {productChatbot.Description},imageUrl: {productChatbot.ImageUrl}");
-                }
+                contextData.AppendLine($"- ID: {b.BrandId}, Tên: {b.BrandName}");
             }
-            else
+
+            contextData.AppendLine("\nDANH SÁCH DANH MỤC (CATEGORIES):");
+            foreach (var c in categories)
             {
-                contextData.AppendLine("Không tìm thấy sản phẩm liên quan. Trả lời dựa trên kiến thức chung.");
+                contextData.AppendLine($"- ID: {c.CategoryId}, Tên: {c.CategoryName}");
+            }
+            contextData.AppendLine("\nDanh sach Q&A ():");
+            foreach (var q in questionAndAnswer)
+            {
+                contextData.AppendLine($"- Câu hỏi: {q.Question}, Câu trả lời: {q.Answer}");
             }
 
             // ----------------------------------------------------
-            // ***** TẠO PROMPT CUỐI CÙNG (Gộp Lịch sử và RAG) *****
+            // ***** TẠO PROMPT CUỐI CÙNG - STEP 1: ANALYZE INTENT *****
             // ----------------------------------------------------
 
             // 5. Gộp Lịch sử Chat vào Prompt
@@ -181,39 +175,36 @@ namespace ElectronicStore.Api.Controllers
                 chatHistoryContext.AppendLine($"{message.Role}: {message.Content}");
             }
 
-            // 6. Tạo PROMPT cuối cùng gửi đến Gemini
-            // YÊU CẦU ĐẦY ĐỦ VỀ ĐỊNH DẠNG TRẢ VỀ:
-            // Để dễ phân tách và hiển thị trên client, yêu cầu model trả lời ngắn gọn theo định dạng sau:
-            // 1) PHẦN MESSAGE (chuỗi tự nhiên) - đây là nội dung người dùng sẽ thấy
-            // 2) Một dòng chứa chính xác ký tự phân tách: |||
-            // 3) PHẦN PRODUCTS: một JSON array chứa các đối tượng sản phẩm với trường name, price, description
-            //    Nếu không có sản phẩm liên quan, trả về một mảng rỗng: []
-            // Ví dụ trả về (khoảng cách/format phải giống):
-            //    Cửa hàng hiện có 3 sản phẩm phù hợp...\n|||\n[{"name":"A","price":1000,"description":"..."}, ...]
+            // 6. Tạo PROMPT cho GEMINI LẦN 1: Phân tích ý định và sinh filter
+            var intentPrompt = @"
+Bạn là trợ lý ảo của cửa hàng Điện máy xanh. 
 
-            var finalPrompt = @"
-                     Bạn là trợ lý ảo của cửa hàng Điện máy xanh. Trả lời ngắn gọn, thân thiện và chính xác.
-                     HÃY CHÚ Ý RẤT QUAN TRỌNG ĐẾN ĐỊNH DẠNG:
-                     1) ĐẦU TIÊN in PHẦN MESSAGE (một đoạn văn bằng tiếng Việt, không chứa JSON hay ký tự phân tách).
-                     2) In một dòng chỉ chứa chính xác ký tự phân tách: ||| (ba ký tự | liên tiếp) với không có ký tự khác trên dòng đó.
-                     3) NGAY SAU DÒNG PHÂN TÁCH, in CHÍNH XÁC một JSON ARRAY (ví dụ: [{""name"":""..."",""price"":12345,""description"":""..."",""imageUrl"":""...""}, ...]).
-                         - Mỗi object trong array phải có khóa chính xác: ""name"", ""price"", ""description"",""imageUrl"".
-                         - ""price"" phải là một số (integer) biểu diễn VND (ví dụ: 2390000).
-                         - KHÔNG in thêm chú thích, ký hiệu tiền tệ, hay văn bản nào khác cùng với JSON.
-                     4) Nếu KHÔNG có sản phẩm liên quan, phần PRODUCTS phải là [] (một mảng JSON rỗng).
-                        trả về tối đa 3 sản phẩm thôi nhé
-                     Nếu bạn không trả lời về sản phẩm thì vẫn phải tuân thủ định dạng: phần PRODUCTS = [] sau dòng phân tách.
+NHIỆM VỤ: Phân tích câu hỏi của người dùng và TRẢ VỀ CHỈ MỘT JSON hợp lệ theo schema sau:
 
-                     SỬ DỤNG THÔNG TIN DỮ LIỆU SẢN PHẨM dưới đây để tạo ra output (nhưng KHÔNG nói 'cơ sở dữ liệu'):
-                     ";
+{
+  ""isProductQuery"": true/false,
+  ""keywords"": [/* các từ khóa tìm kiếm */],
+  ""minPrice"": /* số hoặc null */,
+  ""maxPrice"": /* số hoặc null */,
+  ""categoryIds"": [/* mảng ID danh mục */],
+  ""brandIds"": [/* mảng ID thương hiệu */],
+  ""limit"": /* số lượng sản phẩm tối đa 1-10 */,
+  ""message"": ""/* nếu isProductQuery=false, đây là câu trả lời trực tiếp cho user (nếu liên đến bảo mật thì kêu liên hệ 1900 1068 để gặp trực tiếp nhân viên hỗ trợ) */""
+}
 
-            // Nối phần dữ liệu động vào prompt (tránh dùng interpolated string để không cần escape braces)
-            finalPrompt += "\n" + "DỮ LIỆU SẢN PHẨM :\n" + contextData.ToString() + "\n\n";
-            finalPrompt += "LỊCH SỬ CUỘC TRÒ CHUYỆN :\n" + chatHistoryContext.ToString() + "\n\n";
-            finalPrompt += "CÂU HỎI HIỆN TẠI CỦA NGƯỜI DÙNG:\n" + req.Message + "\n";
+HƯỚNG DẪN:
+- Nếu người dùng KHÔNG hỏi về sản phẩm (ví dụ: chào hỏi, hỏi thông tin cửa hàng, v.v.) → set isProductQuery=false và viết câu trả lời vào trường ""message""
+- Nếu người dùng HỎI VỀ SẢN PHẨM → set isProductQuery=true và điền các trường filter phù hợp
+- Sử dụng danh sách BRANDS và CATEGORIES dưới đây để map tên thành ID
+- KHÔNG in thêm text nào khác ngoài JSON object
+
+";
+            intentPrompt += "\n" + contextData.ToString() + "\n\n";
+            intentPrompt += chatHistoryContext.ToString() + "\n\n";
+            intentPrompt += "CÂU HỎI HIỆN TẠI:\n" + req.Message + "\n";
 
             // -------------------------------------------------------------------
-            // ***** GỌI API GEMINI VỚI PROMPT ĐÃ LÀM GIÀU *****
+            // ***** GỌI API GEMINI LẦN 1: PHÂN TÍCH Ý ĐỊNH *****
             // -------------------------------------------------------------------
 
             var client = _httpClientFactory.CreateClient("Gemini");
@@ -223,7 +214,7 @@ namespace ElectronicStore.Api.Controllers
                 contents = new[]
                 {
                     new {
-                        parts = new[] { new { text = finalPrompt } }
+                        parts = new[] { new { text = intentPrompt } }
                     }
                 }
             };
@@ -241,71 +232,147 @@ namespace ElectronicStore.Api.Controllers
             }
 
             // ----------------------------------------------------
-            // ***** XỬ LÝ PHẢN HỒI GEMINI & LƯU LỊCH SỬ *****
+            // ***** XỬ LÝ PHẢN HỒI GEMINI LẦN 1 - PARSE INTENT & FILTER *****
             // ----------------------------------------------------
             try
             {
                 var doc = JsonDocument.Parse(responseText);
-                var finalAnswer = doc.RootElement
+                var intentResponse = doc.RootElement
                     .GetProperty("candidates")[0]
                     .GetProperty("content")
                     .GetProperty("parts")[0]
-                    .GetProperty("text").GetString();
+                    .GetProperty("text").GetString() ?? string.Empty;
 
-                // 7. LƯU LỊCH SỬ CHAT MỚI VÀO SESSION + PHÂN TÍCH ĐỊNH DẠNG NGẮN
-                if (!string.IsNullOrEmpty(finalAnswer))
+                // Parse JSON từ response
+                var start = intentResponse.IndexOf('{');
+                var end = intentResponse.LastIndexOf('}');
+                if (start < 0 || end <= start)
                 {
-                    // Lưu toàn bộ output của model vào lịch sử (giữ nguyên để truy vết)
-                    history.Add(new ChatMessage { Role = "model", Content = finalAnswer! });
+                    // Fallback nếu không parse được
+                    history.Remove(history.Last());
                     HttpContext.Session.SetObjectAsJson(ChatHistoryKey, history);
+                    return StatusCode(500, new { error = "Không thể phân tích phản hồi từ Gemini." });
+                }
 
-                    // Tách theo separator đã yêu cầu trong prompt
-                    var separator = "|||";
-                    string messageText = finalAnswer;
-                    string? productsPart = null;
+                var jsonOnly = intentResponse.Substring(start, end - start + 1);
+                var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var filter = JsonSerializer.Deserialize<ProductFilterDto>(jsonOnly, opts);
 
-                    // Sử dụng last index để tránh trường hợp message chứa separator
-                    var sepIndex = finalAnswer.LastIndexOf(separator);
-                    if (sepIndex >= 0)
+                if (filter == null)
+                {
+                    history.Remove(history.Last());
+                    HttpContext.Session.SetObjectAsJson(ChatHistoryKey, history);
+                    return StatusCode(500, new { error = "Không thể parse filter từ Gemini." });
+                }
+
+                // ----------------------------------------------------
+                // ***** CASE 1: Không phải câu hỏi về sản phẩm *****
+                // ----------------------------------------------------
+                if (!filter.IsProductQuery)
+                {
+                    var simpleMessage = filter.Message ?? "Xin chào! Tôi có thể giúp gì cho bạn?";
+                    history.Add(new ChatMessage { Role = "model", Content = simpleMessage, Timestamp = DateTime.UtcNow });
+                    HttpContext.Session.SetObjectAsJson(ChatHistoryKey, history);
+                    return Ok(new { message = simpleMessage });
+                }
+
+                // ----------------------------------------------------
+                // ***** CASE 2: Câu hỏi về sản phẩm - QUERY DATABASE *****
+                // ----------------------------------------------------
+                var limit = 3;
+                var imagePath = _config["ImageSettings:ProductPath"] ?? string.Empty;
+
+                var q = _context.Products.AsQueryable();
+                q = q.Where(p => p.IsActive);
+
+                if (filter.MinPrice.HasValue)
+                    q = q.Where(p => p.SellPrice >= filter.MinPrice.Value);
+                if (filter.MaxPrice.HasValue)
+                    q = q.Where(p => p.SellPrice <= filter.MaxPrice.Value);
+                if (filter.CategoryIds?.Any() == true)
+                    q = q.Where(p => filter.CategoryIds.Contains(p.CategoryId));
+                if (filter.BrandIds?.Any() == true)
+                    q = q.Where(p => filter.BrandIds.Contains(p.BrandId));
+
+                if (filter.Keywords?.Any() == true)
+                {
+                    foreach (var kw in filter.Keywords)
                     {
-                        messageText = finalAnswer.Substring(0, sepIndex).Trim();
-                        var rawProducts = finalAnswer.Substring(sepIndex + separator.Length).Trim();
-
-                        // Nếu model đưa kèm một vài text trước/sau JSON, cố gắng tách lấy phần JSON array bằng cách tìm '[' và ']'
-                        var startArr = rawProducts.IndexOf('[');
-                        var endArr = rawProducts.LastIndexOf(']');
-                        if (startArr >= 0 && endArr > startArr)
-                        {
-                            productsPart = rawProducts.Substring(startArr, endArr - startArr + 1).Trim();
-                        }
-                        else
-                        {
-                            // fallback: dùng toàn bộ phần còn lại
-                            productsPart = rawProducts;
-                        }
-                    }
-
-                    // Nếu có phần products và khác [] thì cố gắng parse JSON và trả về kèm products
-                    if (!string.IsNullOrEmpty(productsPart) && productsPart != "[]")
-                    {
-                        try
-                        {
-                            var productsJson = JsonDocument.Parse(productsPart).RootElement;
-                            return Ok(new { message = messageText, products = productsJson });
-                        }
-                        catch
-                        {
-                            // Nếu parse thất bại, fallback trả về message duy nhất
-                            return Ok(new { message = messageText });
-                        }
-                    }
-                    else
-                    {
-                        return Ok(new { message = messageText });
+                        var k = kw?.Trim();
+                        if (string.IsNullOrEmpty(k)) continue;
+                        q = q.Where(p => EF.Functions.Like(p.ProductName, $"%{k}%") ||
+                                         EF.Functions.Like(p.Description, $"%{k}%"));
                     }
                 }
 
-                return Ok(new { message = finalAnswer });
+                var rows = await q.Select(p => new
+                {
+                    p.ProductId,
+                    p.ProductName,
+                    p.Description,
+                    p.SellPrice,
+                    MainImage = p.ProductImages.Where(i => i.ImageMain).Select(i => i.UrlProductImage).FirstOrDefault()
+                }).Take(limit).ToListAsync();
+
+                var productsForClient = rows.Select(r => new
+                {
+                    name = r.ProductName,
+                    description = r.Description,
+                    price = r.SellPrice,
+                    imageUrl = string.IsNullOrEmpty(r.MainImage) ? null : $"{baseUrl}{imagePath}{r.MainImage}"
+                }).ToList();
+
+                // ----------------------------------------------------
+                // ***** GỌI GEMINI LẦN 2: TẠO RESPONSE MESSAGE *****
+                // ----------------------------------------------------
+                var productsJson = JsonSerializer.Serialize(productsForClient);
+                var shortHistory = string.Join(" | ", history.TakeLast(6).Select(h => h.Role + ": " + h.Content));
+
+                var prompt2 = $@"Bạn là trợ lý ảo của cửa hàng Điện máy xanh. 
+Dựa trên lịch sử: {shortHistory}
+Và danh sách sản phẩm (JSON) dưới đây, hãy trả lời 1-2 câu tiếng Việt ngắn gọn, thân thiện.
+
+{productsJson}
+
+YÊU CẦU: Chỉ trả VĂN BẢN (text), KHÔNG trả JSON.";
+
+                string finalMessage;
+                try
+                {
+                    var body2 = new { contents = new[] { new { parts = new[] { new { text = prompt2 } } } } };
+                    var resp2 = await client.PostAsync(url, new StringContent(JsonSerializer.Serialize(body2), Encoding.UTF8, "application/json"));
+                    var txt2 = await resp2.Content.ReadAsStringAsync();
+
+                    if (resp2.IsSuccessStatusCode)
+                    {
+                        var doc2 = JsonDocument.Parse(txt2);
+                        finalMessage = doc2.RootElement
+                            .GetProperty("candidates")[0]
+                            .GetProperty("content")
+                            .GetProperty("parts")[0]
+                            .GetProperty("text").GetString() ?? string.Empty;
+                    }
+                    else
+                    {
+                        finalMessage = productsForClient.Any()
+                            ? $"Mình tìm thấy {productsForClient.Count} sản phẩm phù hợp cho bạn."
+                            : "Mình chưa tìm thấy sản phẩm phù hợp.";
+                    }
+                }
+                catch
+                {
+                    finalMessage = productsForClient.Any()
+                        ? $"Mình tìm thấy {productsForClient.Count} sản phẩm phù hợp cho bạn."
+                        : "Mình chưa tìm thấy sản phẩm phù hợp.";
+                }
+
+                // Lưu vào lịch sử với separator + products JSON
+                var separator = "|||";
+                var modelContent = finalMessage + "\n" + separator + "\n" + productsJson;
+                history.Add(new ChatMessage { Role = "model", Content = modelContent, Timestamp = DateTime.UtcNow });
+                HttpContext.Session.SetObjectAsJson(ChatHistoryKey, history);
+
+                return Ok(new { message = finalMessage, products = productsForClient });
             }
             catch (Exception ex)
             {
@@ -316,6 +383,19 @@ namespace ElectronicStore.Api.Controllers
             }
         }
     }
+
+    public class ProductFilterDto
+    {
+        public bool IsProductQuery { get; set; }
+        public List<string>? Keywords { get; set; }
+        public decimal? MinPrice { get; set; }
+        public decimal? MaxPrice { get; set; }
+        public List<int>? CategoryIds { get; set; }
+        public List<int>? BrandIds { get; set; }
+        public int? Limit { get; set; }
+        public string? Message { get; set; }
+    }
+
     public class ChatRequest
     {
         public string Message { get; set; } = "";
