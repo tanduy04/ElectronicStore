@@ -8,6 +8,12 @@ namespace ElectronicStore.Api.Dto
         public int ProductId { get; set; }
         [Required]
 
+        public string FullName { get; set; }
+        [Required]
+
+        public string Phone { get; set; }
+        [Required]
+
         public int Rating { get; set; }
         public int? ParentID { get; set; }
         [Required]
@@ -34,8 +40,9 @@ namespace ElectronicStore.Api.Dto
     {
         public int ReviewId { get; set; }
         public int ProductId { get; set; }
-        public int AccountId { get; set; }
-        public string Name { get; set; }
+        public string FullName { get; set; }
+        public string Phone { get; set; }
+
         [Range(1,5)]
         public int Rating { get; set; }
         public int? ParentId { get; set; }

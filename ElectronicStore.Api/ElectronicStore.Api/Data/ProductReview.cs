@@ -9,7 +9,9 @@ public partial class ProductReview
 
     public int ProductId { get; set; }
 
-    public int AccountId { get; set; }
+    public string FullName { get; set; } = null!;
+
+    public string? Phone { get; set; }
 
     public int Rating { get; set; }
 
@@ -20,8 +22,6 @@ public partial class ProductReview
     public DateTime CreatedAt { get; set; }
 
     public bool IsActive { get; set; }
-
-    public virtual Account Account { get; set; } = null!;
 
     public virtual Product Product { get; set; } = null!;
 }

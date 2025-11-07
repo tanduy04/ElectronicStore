@@ -37,7 +37,5 @@ public partial class Account
 
     public virtual ICollection<FavoriteProduct> FavoriteProducts { get; set; } = new List<FavoriteProduct>();
 
-    public virtual ICollection<ProductReview> ProductReviews { get; set; } = new List<ProductReview>();
-
     public virtual Role Role { get; set; } = null!;
 }

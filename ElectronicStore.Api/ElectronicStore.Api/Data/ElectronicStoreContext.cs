@@ -78,7 +78,9 @@ public partial class ElectronicStoreContext : DbContext
 
             entity.HasIndex(e => e.Username, "UQ_Accounts_Username").IsUnique();
 
-            entity.Property(e => e.AccountId).HasColumnName("AccountID");
+            entity.Property(e => e.AccountId)
+                .ValueGeneratedNever()
+                .HasColumnName("AccountID");
             entity.Property(e => e.Avatar).HasMaxLength(256);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.Email).HasMaxLength(256);
@@ -482,16 +484,14 @@ public partial class ElectronicStoreContext : DbContext
             entity.HasKey(e => e.ReviewId).HasName("PK__ProductR__74BC79AE15776CF2");
 
             entity.Property(e => e.ReviewId).HasColumnName("ReviewID");
-            entity.Property(e => e.AccountId).HasColumnName("AccountID");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.FullName).HasMaxLength(100);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.ParentId).HasColumnName("ParentID");
+            entity.Property(e => e.Phone)
+                .HasMaxLength(10)
+                .IsFixedLength();
             entity.Property(e => e.ProductId).HasColumnName("ProductID");
-
-            entity.HasOne(d => d.Account).WithMany(p => p.ProductReviews)
-                .HasForeignKey(d => d.AccountId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Reviews_Accounts");
 
             entity.HasOne(d => d.Product).WithMany(p => p.ProductReviews)
                 .HasForeignKey(d => d.ProductId)

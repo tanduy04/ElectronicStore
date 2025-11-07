@@ -346,18 +346,17 @@ namespace ElectronicStore.Api.Controllers
         private async Task<object> GetReviewByProductId(int id)
         {
             var reviews = await _context.ProductReviews
-                    .Where(r => r.ProductId == id && r.ParentId == null)
+                    .Where(r => r.ProductId == id && r.ParentId == null && r.IsActive == true)
                     .OrderByDescending(r => r.CreatedAt)
                     .Select(r => new ProductReviewDto
                     {
                         ReviewId = r.ReviewId,
                         ProductId = r.ProductId,
-                        AccountId = r.AccountId,
-                        Name = r.Account.Email,
+                        FullName = r.FullName,
+                        Phone = r.Phone,
                         Rating = r.Rating,
                         ParentId = r.ParentId,
                         Content = r.Content,
-                        IsActive = r.IsActive
                     })
                     .ToListAsync();
             if (reviews == null || reviews.Count == 0)
@@ -371,7 +370,7 @@ namespace ElectronicStore.Api.Controllers
                      {
                          ParentID = r.ParentId.Value,
                          ReviewID = r.ReviewId,
-                         Name = "Quản trị viên",
+                         Name = r.FullName,
                          Content = r.Content,
                      })
            .FirstOrDefaultAsync();
