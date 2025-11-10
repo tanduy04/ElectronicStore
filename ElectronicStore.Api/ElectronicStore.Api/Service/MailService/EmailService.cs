@@ -17,7 +17,7 @@ public class EmailService
     }
 
 
-    public async Task SendForgotPasswordEmail(string email, string newPassword)
+    public async Task SendForgotPasswordEmail(string email,string username, string newPassword)
     {
         var fromAddress = new MailAddress(_config["EmailSettings:SenderEmail"], _config["EmailSettings:SenderName"]);
         var toAddress = new MailAddress(email);
@@ -30,6 +30,7 @@ public class EmailService
         <body style='font-family: Arial; line-height: 1.6;'>
             <h3>Mật khẩu mới của bạn</h3>
             <p>Xin chào,</p>
+            <p>Tên đăng nhập của bạn là: <b>{username}</b></p>
             <p>Mật khẩu mới của bạn là: <b>{newPassword}</b></p>
             <p style='color: red;'>Vui lòng đổi mật khẩu sau khi đăng nhập để bảo mật tài khoản.</p>
             <br/>

@@ -398,7 +398,7 @@ namespace ElectronicStore.Api.Controllers
             }
         }
 
-        [HttpPost("Buy-now")]
+        [HttpPost("Payment-without-login")]
         public async Task<IActionResult> ByNow(CheckoutProductDto dto)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -422,37 +422,45 @@ namespace ElectronicStore.Api.Controllers
                     await _context.SaveChangesAsync();
                 }
                 var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Phone == dto.PhoneNumber);
+
+
+                
+                if (!dto.Products.Any())
+                    return BadRequest("Empty cart");
                 var today = DateOnly.FromDateTime(System.DateTime.Now);
                 var now = TimeOnly.FromDateTime(System.DateTime.Now);
-
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
                 // 1. Lấy AccountID từ token
-
-
-                var product = await _context.Products.AsNoTracking().FirstOrDefaultAsync(p => p.ProductId == dto.ProductId);
-                if (product == null)
-                    return NotFound("Product not found.");
-                if (product.StockQuantity < dto.Quantity)
+                decimal totalAmount = 0;
+                foreach (var item in dto.Products)
                 {
-                    await transaction.RollbackAsync();
-                    return BadRequest($"Product {product.ProductName} is out of stock");
+                    var product = await _context.Products.AsNoTracking().FirstOrDefaultAsync(p => p.ProductId == item.ProductId);
+                    if (product == null) continue;
+                    if (product.StockQuantity < item.Quantity)
+                    {
+                        await transaction.RollbackAsync();
+                        return BadRequest($"Product {product.ProductName} is out of stock");
+                    }
+
+                    var flashSaleItem = await _context.FlashSaleItems
+                        .Include(fsi => fsi.FlashSale)
+                        .Where(fsi => fsi.ProductId == item.ProductId &&
+                                      fsi.FlashSale.DateSale == today &&
+                                      fsi.FlashSale.StartTime <= now &&
+                                      fsi.FlashSale.EndTime >= now &&
+                                      fsi.Quantity >= item.Quantity)
+                        .FirstOrDefaultAsync();
+                    if (flashSaleItem != null)
+                        product.SellPrice = flashSaleItem.SellPrice;
+                    totalAmount += item.Quantity * product.SellPrice;
                 }
-
-                var flashSaleItem = await _context.FlashSaleItems
-                    .Include(fsi => fsi.FlashSale)
-                    .Where(fsi => fsi.ProductId == dto.ProductId &&
-                                  fsi.FlashSale.DateSale == today &&
-                                  fsi.FlashSale.StartTime <= now &&
-                                  fsi.FlashSale.EndTime >= now &&
-                                  fsi.Quantity >= dto.Quantity)
-                    .FirstOrDefaultAsync();
-                if (flashSaleItem != null)
-                    product.SellPrice = flashSaleItem.SellPrice;
-
                 var voucherUsed = await _context.Orders.FirstOrDefaultAsync(o => o.VoucherCode == dto.VoucherCode && o.CustomerId == customer.CustomerId);
                 if (voucherUsed != null && dto.VoucherCode != null)
                 {
                     return BadRequest("You have used this voucher");
                 }
+                
                 decimal discountPoint = 0;
                 if (dto.usePoint == true)
                 {
@@ -466,7 +474,7 @@ namespace ElectronicStore.Api.Controllers
                 string orderCode = await GenerateOrderCodeAsync();
 
                 // 4. Tính tổng tiền và tạo đơn hàng
-                decimal totalAmount = dto.Quantity * product.SellPrice;
+                
                 decimal discountVoucher = 0;
                 if (dto.VoucherCode != null)
                 {
@@ -496,6 +504,7 @@ namespace ElectronicStore.Api.Controllers
                     }
                 }
                 totalAmount = totalAmount - discountVoucher - discountPoint;
+                ///// coppy
 
                 if (dto.method == "COD")
                 {
@@ -524,29 +533,43 @@ namespace ElectronicStore.Api.Controllers
 
                     // 5. Lưu chi tiết đơn hàng (lấy giá từ Product)
 
-
-                    if (product.StockQuantity < dto.Quantity)
+                    foreach (var productItem in dto.Products )
                     {
-                        await transaction.RollbackAsync();
-                        return BadRequest($"Product {product.ProductName} is out of stock");
-                    }
-                    var orderDetail = new OrderDetail
-                    {
-                        OrderId = order.OrderId,
-                        ProductId = dto.ProductId,
-                        Quantity = dto.Quantity,
-                        UnitPrice = product.SellPrice,  // Giá tại thời điểm mua
-                        TotalPrice = product.SellPrice * dto.Quantity
-                    };
-                    var productToUpdate = await _context.Products.FindAsync(dto.ProductId);
-                    // Cập nhật tồn kho
-                    _context.OrderDetails.Add(orderDetail);
-                    productToUpdate.StockQuantity -= dto.Quantity;
-                    _context.Products.Update(productToUpdate);
+                        var product = await _context.Products.AsNoTracking().FirstOrDefaultAsync(p => p.ProductId == productItem.ProductId);
+                        if (product.StockQuantity < productItem.Quantity)
+                        {
+                            await transaction.RollbackAsync();
+                            return BadRequest($"Product {product.ProductName} is out of stock");
+                        }
+                        var flashSaleItem = await _context.FlashSaleItems
+                        .Include(fsi => fsi.FlashSale)
+                        .Where(fsi => fsi.ProductId == productItem.ProductId &&
+                                      fsi.FlashSale.DateSale == today &&
+                                      fsi.FlashSale.StartTime <= now &&
+                                      fsi.FlashSale.EndTime >= now &&
+                                      fsi.Quantity >= productItem.Quantity)
+                        .FirstOrDefaultAsync();
+                        if (flashSaleItem != null)
+                            product.SellPrice = flashSaleItem.SellPrice;
+                        var orderDetail = new OrderDetail
+                        {
+                            OrderId = order.OrderId,
+                            ProductId = productItem.ProductId,
+                            Quantity = productItem.Quantity,
+                            UnitPrice = product.SellPrice,  // Giá tại thời điểm mua
+                            TotalPrice = product.SellPrice * productItem.Quantity
+                        };
+                        var productToUpdate = await _context.Products.FindAsync(productItem.ProductId);
+                        // Cập nhật tồn kho
+                        _context.OrderDetails.Add(orderDetail);
+                        productToUpdate.StockQuantity -= productItem.Quantity;
+                        _context.Products.Update(productToUpdate);
 
-                    if (flashSaleItem != null)
-                        flashSaleItem.Quantity -= dto.Quantity;
-                    _context.SaveChanges();
+                        if (flashSaleItem != null)
+                            flashSaleItem.Quantity -= productItem.Quantity;
+                        _context.SaveChanges();
+                    }    
+                    
 
 
 
@@ -599,27 +622,42 @@ namespace ElectronicStore.Api.Controllers
 
 
 
-                    if (product.StockQuantity < dto.Quantity)
+                    foreach (var productItem in dto.Products)
                     {
-                        await transaction.RollbackAsync();
-                        return BadRequest($"Product {product.ProductName} is out of stock");
-                    }
-                    var orderDetail = new OrderDetail
-                    {
-                        OrderId = order.OrderId,
-                        ProductId = dto.ProductId,
-                        Quantity = dto.Quantity,
-                        UnitPrice = product.SellPrice,  // Giá tại thời điểm mua
-                        TotalPrice = product.SellPrice * dto.Quantity
-                    };
-                    _context.OrderDetails.Add(orderDetail);
-                    var productToUpdate = await _context.Products.FindAsync(dto.ProductId);
-                    productToUpdate.StockQuantity -= dto.Quantity;
-                    _context.Products.Update(productToUpdate);
+                        var product = await _context.Products.AsNoTracking().FirstOrDefaultAsync(p => p.ProductId == productItem.ProductId);
+                        if (product.StockQuantity < productItem.Quantity)
+                        {
+                            await transaction.RollbackAsync();
+                            return BadRequest($"Product {product.ProductName} is out of stock");
+                        }
+                        var flashSaleItem = await _context.FlashSaleItems
+                        .Include(fsi => fsi.FlashSale)
+                        .Where(fsi => fsi.ProductId == productItem.ProductId &&
+                                      fsi.FlashSale.DateSale == today &&
+                                      fsi.FlashSale.StartTime <= now &&
+                                      fsi.FlashSale.EndTime >= now &&
+                                      fsi.Quantity >= productItem.Quantity)
+                        .FirstOrDefaultAsync();
+                        if (flashSaleItem != null)
+                            product.SellPrice = flashSaleItem.SellPrice;
+                        var orderDetail = new OrderDetail
+                        {
+                            OrderId = order.OrderId,
+                            ProductId = productItem.ProductId,
+                            Quantity = productItem.Quantity,
+                            UnitPrice = product.SellPrice,  // Giá tại thời điểm mua
+                            TotalPrice = product.SellPrice * productItem.Quantity
+                        };
+                        var productToUpdate = await _context.Products.FindAsync(productItem.ProductId);
+                        // Cập nhật tồn kho
+                        _context.OrderDetails.Add(orderDetail);
+                        productToUpdate.StockQuantity -= productItem.Quantity;
+                        _context.Products.Update(productToUpdate);
 
-                    if (flashSaleItem != null)
-                        flashSaleItem.Quantity -= dto.Quantity;
-                    _context.SaveChanges();
+                        if (flashSaleItem != null)
+                            flashSaleItem.Quantity -= productItem.Quantity;
+                        _context.SaveChanges();
+                    }
 
 
                     await _context.SaveChangesAsync();

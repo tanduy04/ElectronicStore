@@ -23,14 +23,16 @@ namespace ElectronicStore.Api.Dto
         public string PhoneNumber { get; set; }
         [Required(ErrorMessage = "Address is required")]
         public string Address { get; set; }
-        [Required]
-        public int ProductId { get; set; }
-        [Required]
-        public int Quantity { get; set; }
+        public List<ProductItem> Products { get; set; }
         public string? VoucherCode { get; set; }
         public bool? usePoint { get; set; } = false;
         [Required]
         [RegularExpression("^(VNPAY|COD)$", ErrorMessage = "Payment method must be 'VNPAY' or 'COD'")]
         public string method { get; set; }
+    }
+    public class ProductItem
+    {
+        public int ProductId { get; set; }
+        public int Quantity { get; set; }
     }
 }

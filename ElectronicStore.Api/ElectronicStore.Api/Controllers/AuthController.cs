@@ -1,11 +1,14 @@
 ﻿using ElectronicStore.Api.Data;
 using ElectronicStore.Api.Dto;
 using ElectronicStore.Api.Service;
+using Google.Apis.Logging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Microsoft.Identity.Client;
 using SendGrid.Helpers.Mail;
 using System;
 using System.Net;
@@ -37,14 +40,13 @@ namespace ElectronicStore.Api.Controllers
         {
             try
             {
-                if (_db.Accounts.Any(a => a.Email == dto.Email))
-                    return BadRequest("Email already exists");
-                if (_db.Customers.Any(a => a.Phone == dto.PhoneNumber))
-                    return BadRequest("Phone number already exists");
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
+                if (_db.Accounts.Any(a => a.Email == dto.Email))
+                    return BadRequest("Email already exists");
+                if (_db.Customers.Any(a => a.Phone == dto.PhoneNumber && a.AccountId != null))
+                    return BadRequest("Phone number already exists");
                 var role_custommer = _db.Roles.FirstOrDefault(r => r.RoleName == "Customer");
-
                 var newAccount = new Account
                 {
                     Email = dto.Email,
@@ -57,8 +59,15 @@ namespace ElectronicStore.Api.Controllers
                 };
                 _db.Accounts.Add(newAccount);
                 await _db.SaveChangesAsync();
-
                 var account = _db.Accounts.First(a => a.Username == newAccount.Username);
+                var custommerExist = _db.Customers.FirstOrDefault(a => a.Phone == dto.PhoneNumber && a.AccountId == null);
+                if (custommerExist != null)
+                {
+                    custommerExist.FullName = dto.FullName;
+                    custommerExist.AccountId = account.AccountId;
+                    _db.Customers.Update(custommerExist);
+                    await _db.SaveChangesAsync();
+                }    
                 var custommer = new Customer
                 {
                     FullName = dto.FullName,
@@ -184,7 +193,7 @@ namespace ElectronicStore.Api.Controllers
 
                 user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
                 await _db.SaveChangesAsync();
-                await _emailService.SendForgotPasswordEmail(dto.Email, newPassword);
+                await _emailService.SendForgotPasswordEmail(dto.Email,user.Username, newPassword);
 
                 return Ok("A new password has been sent to your email.");
             }
