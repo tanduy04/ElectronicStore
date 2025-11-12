@@ -1,6 +1,7 @@
 ﻿using ElectronicStore.Api.Data;
 using ElectronicStore.Api.Dto;
 using ElectronicStore.Api.Helper;
+using Google.Cloud.AIPlatform.V1;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -161,17 +162,20 @@ namespace ElectronicStore.Api.Controllers
                 if (dto.BrandImage == null || !ImageHelper.IsImageFile(dto.BrandImage))
                     return BadRequest("Please upload a valid image file (jpg, jpeg, png, gif).");
 
-                string folderPath = Path.Combine(_env.WebRootPath, _config["ImageSettings:BrandPath"]);
-                string fileName = await ImageHelper.SaveImageAsync(dto.BrandImage, folderPath, dto.BrandName);
+                
 
                 var brand = new Brand
                 {
                     BrandName = dto.BrandName,
-                    BrandImage = fileName,
                     IsActive = dto.IsActive
                 };
 
                 _context.Brands.Add(brand);
+                await _context.SaveChangesAsync();
+                string folderPath = Path.Combine(_env.WebRootPath, _config["ImageSettings:BrandPath"]);
+                string fileName = await ImageHelper.SaveImageAsync(dto.BrandImage, folderPath, brand.BrandId.ToString());
+                brand.BrandImage = fileName;
+                _context.Brands.Update(brand);
                 await _context.SaveChangesAsync();
 
                 return Ok("Brand created successfully.");
@@ -208,7 +212,7 @@ namespace ElectronicStore.Api.Controllers
                     ImageHelper.DeleteFileIfExists(folderPath, brand.BrandImage);
 
                     // Lưu ảnh mới
-                    brand.BrandImage = await ImageHelper.SaveImageAsync(dto.BrandImage, folderPath, dto.BrandName);
+                    brand.BrandImage = await ImageHelper.SaveImageAsync(dto.BrandImage, folderPath,id.ToString());
                 }
 
                 _context.Brands.Update(brand);

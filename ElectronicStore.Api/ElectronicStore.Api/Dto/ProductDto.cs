@@ -17,8 +17,6 @@ namespace ElectronicStore.Api.Dto
 
         [Required(ErrorMessage = "ConsumptionCapacity is required")]
 
-        public int ConsumptionCapacity { get; set; }
-        [Required(ErrorMessage = "Maintenance is required")]
 
         public int Maintenance { get; set; }
         [Required(ErrorMessage = "CostPrice is required")]
@@ -52,10 +50,8 @@ namespace ElectronicStore.Api.Dto
         public bool IsActive { get; set; }
 
         // Images
-        [Required(ErrorMessage = "MainImage is required")]
 
         public IFormFile? MainImage { get; set; }
-        [Required(ErrorMessage = "SubImages is required")]
 
         public List<IFormFile>? SubImages { get; set; }       // nhiều ảnh phụ (optional)
     }

@@ -11,8 +11,6 @@ public partial class Product
 
     public string Description { get; set; } = null!;
 
-    public int ConsumptionCapacity { get; set; }
-
     public int Maintenance { get; set; }
 
     public decimal CostPrice { get; set; }

@@ -6,7 +6,6 @@ namespace ElectronicStore.Api.Dto
     {
         [Required(ErrorMessage ="BrandName is required")]
         public string BrandName { get; set; }
-        [Required(ErrorMessage = "BrandImage is required")]
 
         public IFormFile? BrandImage { get; set; }
         public bool IsActive { get; set; } = true;

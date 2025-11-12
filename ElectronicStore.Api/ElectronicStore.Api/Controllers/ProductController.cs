@@ -131,6 +131,7 @@ namespace ElectronicStore.Api.Controllers
                     Description = descriptionObj,
                     product.CostPrice,
                     product.SellPrice,
+                    product.Maintenance,
                     product.OriginalPrice,
                     product.StockQuantity,
                     product.Brand.BrandId,
@@ -165,7 +166,7 @@ namespace ElectronicStore.Api.Controllers
                 if (dto.MainImage == null || !ImageHelper.IsImageFile(dto.MainImage))
                     return BadRequest("Please upload a valid main image.");
 
-                if (dto.SubImages != null && dto.SubImages.Any(i => !ImageHelper.IsImageFile(i)))
+                if (dto.SubImages == null || dto.SubImages.Any(i => !ImageHelper.IsImageFile(i)))
                     return BadRequest("All sub-images must be valid image files.");
                 if (dto.OriginalPrice == null || dto.OriginalPrice <= 0)
                     dto.OriginalPrice = dto.SellPrice;
@@ -177,7 +178,6 @@ namespace ElectronicStore.Api.Controllers
                 {
                     ProductName = dto.ProductName,
                     Description = descriptionJson,
-                    ConsumptionCapacity = dto.ConsumptionCapacity,
                     Maintenance = dto.Maintenance,
                     CostPrice = dto.CostPrice,
                     OriginalPrice = dto.OriginalPrice,
@@ -195,10 +195,9 @@ namespace ElectronicStore.Api.Controllers
                 await _context.SaveChangesAsync();
 
                 string folder = GetProductFolder();
-                string normalized = ImageHelper.NormalizeFileName(dto.ProductName);
 
                 // Lưu main image
-                string mainFile = await ImageHelper.SaveImageAsync(dto.MainImage, folder, $"{normalized}_{product.ProductId}_main");
+                string mainFile = await ImageHelper.SaveImageAsync(dto.MainImage, folder, $"{product.ProductId}_main");
                 _context.ProductImages.Add(new ProductImage { ProductId = product.ProductId, UrlProductImage = mainFile, ImageMain = true });
 
                 // Lưu sub images
@@ -207,7 +206,7 @@ namespace ElectronicStore.Api.Controllers
                     int idx = 1;
                     foreach (var sub in dto.SubImages)
                     {
-                        string subFile = await ImageHelper.SaveImageAsync(sub, folder, $"{normalized}_{product.ProductId}_sub{idx}");
+                        string subFile = await ImageHelper.SaveImageAsync(sub, folder, $"{product.ProductId}_sub{idx}");
                         _context.ProductImages.Add(new ProductImage { ProductId = product.ProductId, UrlProductImage = subFile, ImageMain = false });
                         idx++;
                     }
@@ -268,7 +267,6 @@ namespace ElectronicStore.Api.Controllers
 
                 product.ProductName = dto.ProductName;
                 product.Description = descriptionJson;
-                product.ConsumptionCapacity = dto.ConsumptionCapacity;
                 product.Maintenance = dto.Maintenance;
                 product.CostPrice = dto.CostPrice;
                 product.OriginalPrice = dto.OriginalPrice;
@@ -282,28 +280,43 @@ namespace ElectronicStore.Api.Controllers
                 product.UpdatedAt = DateTime.UtcNow;
 
                 string folder = GetProductFolder();
-                string normalized = ImageHelper.NormalizeFileName(dto.ProductName);
 
-                // Xóa ảnh cũ nếu có
-                foreach (var img in product.ProductImages)
-                    ImageHelper.DeleteFileIfExists(folder, img.UrlProductImage);
-
-                _context.ProductImages.RemoveRange(product.ProductImages);
-
-                // Lưu ảnh mới
-                string mainFile = await ImageHelper.SaveImageAsync(dto.MainImage, folder, $"{normalized}_{id}_main");
-                _context.ProductImages.Add(new ProductImage { ProductId = id, UrlProductImage = mainFile, ImageMain = true });
-
-                if (dto.SubImages != null && dto.SubImages.Any())
+                if (dto.MainImage != null)
                 {
-                    int idx = 1;
-                    foreach (var sub in dto.SubImages)
+                    if (ImageHelper.IsImageFile(dto.MainImage))
                     {
-                        string subFile = await ImageHelper.SaveImageAsync(sub, folder, $"{normalized}_{id}_sub{idx}");
-                        _context.ProductImages.Add(new ProductImage { ProductId = id, UrlProductImage = subFile, ImageMain = false });
-                        idx++;
+                        var mainImage = _context.ProductImages.FirstOrDefault(p => p.ProductId == product.ProductId && p.ImageMain == true);
+                        ImageHelper.DeleteFileIfExists(folder, mainImage.UrlProductImage);
+                        _context.ProductImages.RemoveRange(mainImage);
+                        string mainFile = await ImageHelper.SaveImageAsync(dto.MainImage, folder, $"{id}_main");
+                        _context.ProductImages.Add(new ProductImage { ProductId = id, UrlProductImage = mainFile, ImageMain = true });
                     }
+
                 }
+
+                if (dto.SubImages != null)
+                {
+                    if (dto.SubImages.Any(i => ImageHelper.IsImageFile(i)))
+                    {
+                        var subImage = _context.ProductImages.Where(p => p.ProductId == product.ProductId && p.ImageMain == false);
+                        foreach (var img in subImage)
+                            ImageHelper.DeleteFileIfExists(folder, img.UrlProductImage);
+
+                        _context.ProductImages.RemoveRange(subImage);
+                        if (dto.SubImages != null && dto.SubImages.Any())
+                        {
+                            int idx = 1;
+                            foreach (var sub in dto.SubImages)
+                            {
+                                string subFile = await ImageHelper.SaveImageAsync(sub, folder, $"{id}_sub{idx}");
+                                _context.ProductImages.Add(new ProductImage { ProductId = id, UrlProductImage = subFile, ImageMain = false });
+                                idx++;
+                            }
+                        }
+                    }
+
+                }
+
 
                 await _context.SaveChangesAsync();
                 return Ok("Product updated successfully.");
@@ -440,6 +453,7 @@ namespace ElectronicStore.Api.Controllers
                     Description = descriptionObj,
                     p.CostPrice,
                     p.SellPrice,
+                    p.Maintenance,
                     p.OriginalPrice,
                     p.StockQuantity,
                     p.IsActive,

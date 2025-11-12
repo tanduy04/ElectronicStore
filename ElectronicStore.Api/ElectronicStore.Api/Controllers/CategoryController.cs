@@ -115,17 +115,20 @@ public class CategoriesController : ControllerBase
             if (dto.CategoryImage == null || !ImageHelper.IsImageFile(dto.CategoryImage))
                 return BadRequest("Please upload a valid image file (jpg, jpeg, png, gif).");
 
-            string folderPath = Path.Combine(_env.WebRootPath, _config["ImageSettings:CategoryPath"]);
-            string fileName = await ImageHelper.SaveImageAsync(dto.CategoryImage, folderPath, dto.CategoryName);
-
+            
             var category = new Category
             {
                 CategoryName = dto.CategoryName,
-                CategoryImage = fileName,
                 IsActive = dto.IsActive
             };
 
             _context.Categories.Add(category);
+
+            await _context.SaveChangesAsync();
+            string folderPath = Path.Combine(_env.WebRootPath, _config["ImageSettings:CategoryPath"]);
+            string fileName = await ImageHelper.SaveImageAsync(dto.CategoryImage, folderPath, category.CategoryId.ToString());
+            category.CategoryImage = fileName;
+            _context.Update(category);
             await _context.SaveChangesAsync();
 
             return Ok("Category created successfully.");
@@ -162,7 +165,7 @@ public class CategoriesController : ControllerBase
                 ImageHelper.DeleteFileIfExists(folderPath, category.CategoryImage);
 
                 // Lưu ảnh mới
-                category.CategoryImage = await ImageHelper.SaveImageAsync(dto.CategoryImage, folderPath, dto.CategoryName);
+                category.CategoryImage = await ImageHelper.SaveImageAsync(dto.CategoryImage, folderPath, id.ToString());
             }
 
             _context.Categories.Update(category);
