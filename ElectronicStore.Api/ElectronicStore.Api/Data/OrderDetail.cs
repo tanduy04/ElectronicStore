@@ -7,6 +7,8 @@ public partial class OrderDetail
 {
     public int OrderDetailId { get; set; }
 
+    public string? OrderCode { get; set; }
+
     public int OrderId { get; set; }
 
     public int ProductId { get; set; }
@@ -17,7 +19,7 @@ public partial class OrderDetail
 
     public decimal? TotalPrice { get; set; }
 
-    public virtual Order Order { get; set; } = null!;
+    public virtual Order? OrderCodeNavigation { get; set; }
 
     public virtual Product Product { get; set; } = null!;
 }

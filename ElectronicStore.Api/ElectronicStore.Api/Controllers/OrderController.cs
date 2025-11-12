@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System.Net;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -28,7 +29,7 @@ namespace ElectronicStore.Api.Controllers
         }
         private string GetBaseUrl() => $"{Request.Scheme}://{Request.Host}/";
 
-         //=================== ADMIN & EMPLOYEE ===================
+        //=================== ADMIN & EMPLOYEE ===================
 
         // Lấy tất cả đơn hàng
         [HttpGet("getAll")]
@@ -54,7 +55,6 @@ namespace ElectronicStore.Api.Controllers
                 .Take(pageSize)
                 .Select(o => new OrderDto
                 {
-                    OrderId = o.OrderId,
                     OrderCode = o.OrderCode,
                     OrderDate = o.OrderDate,
                     TotalAmount = o.TotalAmount,
@@ -115,7 +115,6 @@ namespace ElectronicStore.Api.Controllers
                 .Take(pageSize)
                 .Select(o => new OrderDto
                 {
-                    OrderId = o.OrderId,
                     OrderCode = o.OrderCode,
                     OrderDate = o.OrderDate,
                     TotalAmount = o.TotalAmount,
@@ -163,7 +162,6 @@ namespace ElectronicStore.Api.Controllers
 
             return Ok(new OrderDto
             {
-                OrderId = order.OrderId,
                 OrderCode = order.OrderCode,
                 OrderDate = order.OrderDate,
                 TotalAmount = order.TotalAmount,
@@ -183,41 +181,7 @@ namespace ElectronicStore.Api.Controllers
             });
         }
 
-        // Lấy đơn hàng theo OrderId
-        [HttpGet("getById/{id}")]
-        [Authorize(Roles = "Admin,Employee")]
-        public async Task<IActionResult> GetById(int id)
-        {
-            var baseUrl = GetBaseUrl();
-
-            var order = await _context.Orders
-                .Include(o => o.OrderDetails)
-                .ThenInclude(od => od.Product)
-                .FirstOrDefaultAsync(o => o.OrderId == id);
-
-            if (order == null) return NotFound("Order not found");
-
-            return Ok(new OrderDto
-            {
-                OrderId = order.OrderId,
-                OrderCode = order.OrderCode,
-                OrderDate = order.OrderDate,
-                TotalAmount = order.TotalAmount,
-                Status = order.Status,
-                shippingAddress = order.ShippingAddress,
-                PhoneNumber = order.PhoneNumber,
-                paymentMethod = order.PaymentMethod,
-                CustomerName = order.FullName,
-                OrderDetails = order.OrderDetails.Select(d => new OrderDetailDto
-                {
-                    OrderDetailId = d.OrderDetailId,
-                    ProductName = d.Product.ProductName,
-                    ProductImage = $"{baseUrl}{_config["ImageSettings:ProductPath"]}{_context.ProductImages.FirstOrDefault(x => x.ProductId == d.ProductId && x.ImageMain == true).UrlProductImage}",
-                    Quantity = d.Quantity,
-                    Price = d.UnitPrice,
-                }).ToList()
-            });
-        }
+       
 
 
         // =================== CUSTOMER ===================
@@ -247,7 +211,6 @@ namespace ElectronicStore.Api.Controllers
                 .OrderByDescending(o => o.OrderDate)
                 .Select(o => new OrderDto
                 {
-                    OrderId = o.OrderId,
                     OrderCode = o.OrderCode,
                     OrderDate = o.OrderDate,
                     TotalAmount = o.TotalAmount,
@@ -269,14 +232,14 @@ namespace ElectronicStore.Api.Controllers
 
             return Ok(orders);
         }
-        [HttpPut("update-status/{orderId}")]
-        [Authorize(Roles = "Admin,Employee")] 
-        public async Task<IActionResult> UpdateOrderStatus(int orderId, [FromBody] string newStatus)
+        [HttpPut("update-status/{OrderCode}")]
+        [Authorize(Roles = "Admin,Employee")]
+        public async Task<IActionResult> UpdateOrderStatus(string OrderCode, [FromBody] string newStatus)
         {
             try
             {
                 var order = await _context.Orders.Include(o => o.Payments).Include(o => o.Customer).ThenInclude(ac => ac.Account)
-                .FirstOrDefaultAsync(o => o.OrderId == orderId);
+                .FirstOrDefaultAsync(o => o.OrderCode == OrderCode);
                 if (order == null) return NotFound("Order not found");
 
                 var currentStatus = order.Status;
@@ -298,7 +261,7 @@ namespace ElectronicStore.Api.Controllers
                 {
                     if (order.PaymentMethod == "COD")
                     {
-                        var payment = await _context.Payments.FirstOrDefaultAsync(p => p.OrderId == order.OrderId);
+                        var payment = await _context.Payments.FirstOrDefaultAsync(p => p.OrderCode == order.OrderCode);
                         if (payment != null)
                         {
                             payment.Status = "Paid";
@@ -306,16 +269,17 @@ namespace ElectronicStore.Api.Controllers
                         }
                     }
                     var customer = await _context.Customers.FirstOrDefaultAsync(c => c.CustomerId == order.CustomerId);
-                    if(customer != null)
-                        {
-                        customer.Point = customer.Point + (int)(order.TotalAmount/1000000); // 1 điểm cho mỗi 10000đ
+                    if (customer != null)
+                    {
+                        customer.Point = customer.Point + (int)(order.TotalAmount / 1000000); // 1 điểm cho mỗi 10000đ
                         _context.Customers.Update(customer);
                     }
                 }
 
                 await _context.SaveChangesAsync();
-                _emailService.UpdateOrderStatus(order.Customer.Account.Email, order.OrderCode, newStatus);
-                return Ok(new { Message = "Order status updated successfully", OrderId = orderId, NewStatus = newStatus });
+                if(order.Customer.Account != null)
+                    _emailService.UpdateOrderStatus(order.Customer.Account.Email, order.OrderCode, newStatus);
+                return Ok(new { Message = "Order status updated successfully", OrderCode = OrderCode, NewStatus = newStatus });
             }
             catch (Exception ex)
             {
@@ -324,14 +288,24 @@ namespace ElectronicStore.Api.Controllers
         }
 
         [HttpPost("CancelOrder")]
-        [Authorize(Roles = "Customer")]
-        public async Task<IActionResult> CancelOrder(int orderId)
+        [Authorize]
+        public async Task<IActionResult> CancelOrder(string OrderCode)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var accountId = User.Claims.FirstOrDefault(c => c.Type == "AccountID")?.Value;
-                var order = await _context.Orders.Include( o => o.Customer).ThenInclude( ac => ac.Account).FirstOrDefaultAsync(o => o.OrderId == orderId && o.Customer.AccountId == int.Parse(accountId));
+                var role = User.FindFirst(ClaimTypes.Role)?.Value;
+
+                Order order = null;
+                if (role == "Customer")
+                {
+                    var accountId = User.Claims.FirstOrDefault(c => c.Type == "AccountID")?.Value;
+                    order = await _context.Orders.Include(o => o.Customer).ThenInclude(ac => ac.Account).FirstOrDefaultAsync(o => o.OrderCode == OrderCode && o.Customer.AccountId == int.Parse(accountId));
+                }
+                else
+                {
+                    order = await _context.Orders.Include(o => o.Customer).ThenInclude(ac => ac.Account).FirstOrDefaultAsync(o => o.OrderCode == OrderCode);
+                }
                 if (order == null)
                     return NotFound("Order not found");
                 if (order.Status != "Pending")
@@ -339,7 +313,7 @@ namespace ElectronicStore.Api.Controllers
 
 
                 var payment = await _context.Payments
-                    .FirstOrDefaultAsync(p => p.OrderId == order.OrderId);
+                    .FirstOrDefaultAsync(p => p.OrderCode == order.OrderCode);
 
                 if (payment == null)
                     return BadRequest("Payment info not found");
@@ -358,8 +332,8 @@ namespace ElectronicStore.Api.Controllers
 
                 // Cập nhật trạng thái đơn hàng
                 order.Status = "Cancelled";
-                var itemInOrder =_context.OrderDetails.Where(od => od.OrderId == order.OrderId).ToList();
-                foreach(var item in itemInOrder)
+                var itemInOrder = _context.OrderDetails.Where(od => od.OrderCode == order.OrderCode).ToList();
+                foreach (var item in itemInOrder)
                 {
                     var product = await _context.Products.FirstOrDefaultAsync(p => p.ProductId == item.ProductId);
                     if (product != null)
@@ -370,6 +344,7 @@ namespace ElectronicStore.Api.Controllers
                 }
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
+                if(order.Customer.Account.Email != null)
                 _emailService.UpdateOrderStatus(order.Customer.Account.Email, order.OrderCode, "Cancelled");
                 return Ok(new { Message = "Order cancelled successfully", order.OrderCode });
             }

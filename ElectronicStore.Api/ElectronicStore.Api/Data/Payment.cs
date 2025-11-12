@@ -7,7 +7,7 @@ public partial class Payment
 {
     public int PaymentId { get; set; }
 
-    public int OrderId { get; set; }
+    public string? OrderCode { get; set; }
 
     public int CustomerId { get; set; }
 
@@ -23,5 +23,5 @@ public partial class Payment
 
     public virtual Customer Customer { get; set; } = null!;
 
-    public virtual Order Order { get; set; } = null!;
+    public virtual Order? OrderCodeNavigation { get; set; }
 }

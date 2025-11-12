@@ -163,7 +163,7 @@ namespace ElectronicStore.Api.Controllers
                     }
                     var orderDetail = new OrderDetail
                     {
-                        OrderId = order.OrderId,
+                        OrderCode = order.OrderCode,
                         ProductId = item.Product.ProductId,
                         Quantity = item.Quantity,
                         UnitPrice = item.Product.SellPrice,  // Giá tại thời điểm mua
@@ -191,7 +191,7 @@ namespace ElectronicStore.Api.Controllers
                 // 7. Lưu thông tin thanh toán COD
                 var payment = new Payment
                 {
-                    OrderId = order.OrderId,
+                    OrderCode = order.OrderCode,
                     CustomerId = order.CustomerId,
                     Amount = totalAmount,
                     Status = "UnPaid",
@@ -339,7 +339,7 @@ namespace ElectronicStore.Api.Controllers
                     }
                     var orderDetail = new OrderDetail
                     {
-                        OrderId = order.OrderId,
+                        OrderCode = order.OrderCode,
                         ProductId = product.ProductId,
                         Quantity = item.Quantity,
                         UnitPrice = item.Product.SellPrice,  // Giá tại thời điểm mua
@@ -424,7 +424,7 @@ namespace ElectronicStore.Api.Controllers
                 var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Phone == dto.PhoneNumber);
 
 
-                
+
                 if (!dto.Products.Any())
                     return BadRequest("Empty cart");
                 var today = DateOnly.FromDateTime(System.DateTime.Now);
@@ -460,7 +460,7 @@ namespace ElectronicStore.Api.Controllers
                 {
                     return BadRequest("You have used this voucher");
                 }
-                
+
                 decimal discountPoint = 0;
                 if (dto.usePoint == true)
                 {
@@ -474,7 +474,7 @@ namespace ElectronicStore.Api.Controllers
                 string orderCode = await GenerateOrderCodeAsync();
 
                 // 4. Tính tổng tiền và tạo đơn hàng
-                
+
                 decimal discountVoucher = 0;
                 if (dto.VoucherCode != null)
                 {
@@ -533,7 +533,7 @@ namespace ElectronicStore.Api.Controllers
 
                     // 5. Lưu chi tiết đơn hàng (lấy giá từ Product)
 
-                    foreach (var productItem in dto.Products )
+                    foreach (var productItem in dto.Products)
                     {
                         var product = await _context.Products.AsNoTracking().FirstOrDefaultAsync(p => p.ProductId == productItem.ProductId);
                         if (product.StockQuantity < productItem.Quantity)
@@ -553,7 +553,7 @@ namespace ElectronicStore.Api.Controllers
                             product.SellPrice = flashSaleItem.SellPrice;
                         var orderDetail = new OrderDetail
                         {
-                            OrderId = order.OrderId,
+                            OrderCode = order.OrderCode,
                             ProductId = productItem.ProductId,
                             Quantity = productItem.Quantity,
                             UnitPrice = product.SellPrice,  // Giá tại thời điểm mua
@@ -568,8 +568,8 @@ namespace ElectronicStore.Api.Controllers
                         if (flashSaleItem != null)
                             flashSaleItem.Quantity -= productItem.Quantity;
                         _context.SaveChanges();
-                    }    
-                    
+                    }
+
 
 
 
@@ -577,7 +577,7 @@ namespace ElectronicStore.Api.Controllers
                     // 7. Lưu thông tin thanh toán COD
                     var payment = new Payment
                     {
-                        OrderId = order.OrderId,
+                        OrderCode = order.OrderCode,
                         CustomerId = order.CustomerId,
                         Amount = totalAmount,
                         Status = "UnPaid",
@@ -642,7 +642,7 @@ namespace ElectronicStore.Api.Controllers
                             product.SellPrice = flashSaleItem.SellPrice;
                         var orderDetail = new OrderDetail
                         {
-                            OrderId = order.OrderId,
+                            OrderCode = order.OrderCode,
                             ProductId = productItem.ProductId,
                             Quantity = productItem.Quantity,
                             UnitPrice = product.SellPrice,  // Giá tại thời điểm mua
@@ -722,7 +722,7 @@ namespace ElectronicStore.Api.Controllers
 
                 _context.Payments.Add(new Payment
                 {
-                    OrderId = order.OrderId,
+                    OrderCode = order.OrderCode,
                     CustomerId = order.CustomerId,
                     Amount = order.TotalAmount,
                     Method = "VNPay",
@@ -742,7 +742,6 @@ namespace ElectronicStore.Api.Controllers
                     Message = "Payment successful",
                     Order = new
                     {
-                        order.OrderId,
                         order.OrderCode,
                         order.TotalAmount,
                         order.Status,
@@ -761,7 +760,7 @@ namespace ElectronicStore.Api.Controllers
 
             return BadRequest("Payment failed");
         }
-        
+
         private async Task<string> GenerateOrderCodeAsync()
         {
             var today = DateTime.Now.ToString("ddMMyyyy");

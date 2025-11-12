@@ -143,7 +143,7 @@ public partial class ElectronicStoreContext : DbContext
 
         modelBuilder.Entity<Banner>(entity =>
         {
-            entity.HasKey(e => e.BannerId).HasName("PK__Banners__32E86A31201E0454");
+            entity.HasKey(e => e.BannerId).HasName("PK__Banners__32E86A31AC15F565");
 
             entity.Property(e => e.BannerId).HasColumnName("BannerID");
             entity.Property(e => e.BannerName).HasMaxLength(200);
@@ -346,20 +346,19 @@ public partial class ElectronicStoreContext : DbContext
 
         modelBuilder.Entity<Order>(entity =>
         {
-            entity.HasKey(e => e.OrderId).HasName("PK__Orders__C3905BAF199D1041");
+            entity.HasKey(e => e.OrderCode).HasName("PK__Orders__C3905BAF199D1041");
 
             entity.HasIndex(e => e.OrderCode, "IX_Orders_OrderCode");
 
             entity.HasIndex(e => e.OrderCode, "UQ__Orders__999B5229D6034ED3").IsUnique();
 
-            entity.Property(e => e.OrderId).HasColumnName("OrderID");
+            entity.Property(e => e.OrderCode).HasMaxLength(50);
             entity.Property(e => e.CustomerId).HasColumnName("CustomerID");
             entity.Property(e => e.DiscountPoint).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.DiscountVoucher).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.EmployeeId).HasColumnName("EmployeeID");
             entity.Property(e => e.FullName).HasMaxLength(255);
             entity.Property(e => e.Note).HasMaxLength(1000);
-            entity.Property(e => e.OrderCode).HasMaxLength(50);
             entity.Property(e => e.OrderDate).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.PaymentMethod).HasMaxLength(50);
             entity.Property(e => e.PhoneNumber)
@@ -391,6 +390,7 @@ public partial class ElectronicStoreContext : DbContext
             entity.HasKey(e => e.OrderDetailId).HasName("PK__OrderDet__D3B9D30CEC1AE971");
 
             entity.Property(e => e.OrderDetailId).HasColumnName("OrderDetailID");
+            entity.Property(e => e.OrderCode).HasMaxLength(50);
             entity.Property(e => e.OrderId).HasColumnName("OrderID");
             entity.Property(e => e.ProductId).HasColumnName("ProductID");
             entity.Property(e => e.Quantity).HasDefaultValue(1);
@@ -399,9 +399,8 @@ public partial class ElectronicStoreContext : DbContext
                 .HasColumnType("decimal(29, 2)");
             entity.Property(e => e.UnitPrice).HasColumnType("decimal(18, 2)");
 
-            entity.HasOne(d => d.Order).WithMany(p => p.OrderDetails)
-                .HasForeignKey(d => d.OrderId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
+            entity.HasOne(d => d.OrderCodeNavigation).WithMany(p => p.OrderDetails)
+                .HasForeignKey(d => d.OrderCode)
                 .HasConstraintName("FK_OrderDetails_Orders");
 
             entity.HasOne(d => d.Product).WithMany(p => p.OrderDetails)
@@ -418,7 +417,7 @@ public partial class ElectronicStoreContext : DbContext
             entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.CustomerId).HasColumnName("CustomerID");
             entity.Property(e => e.Method).HasMaxLength(100);
-            entity.Property(e => e.OrderId).HasColumnName("OrderID");
+            entity.Property(e => e.OrderCode).HasMaxLength(50);
             entity.Property(e => e.Status).HasMaxLength(50);
             entity.Property(e => e.TransactionCode).HasMaxLength(200);
 
@@ -427,9 +426,8 @@ public partial class ElectronicStoreContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Payments_Customer");
 
-            entity.HasOne(d => d.Order).WithMany(p => p.Payments)
-                .HasForeignKey(d => d.OrderId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
+            entity.HasOne(d => d.OrderCodeNavigation).WithMany(p => p.Payments)
+                .HasForeignKey(d => d.OrderCode)
                 .HasConstraintName("FK_Payments_Orders");
         });
 
@@ -501,7 +499,7 @@ public partial class ElectronicStoreContext : DbContext
 
         modelBuilder.Entity<QuestionAndAnswer>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Question__3214EC07FD488749");
+            entity.HasKey(e => e.Id).HasName("PK__Question__3214EC07FB6FED6A");
 
             entity.ToTable("QuestionAndAnswer");
 
@@ -510,7 +508,7 @@ public partial class ElectronicStoreContext : DbContext
 
         modelBuilder.Entity<Role>(entity =>
         {
-            entity.HasKey(e => e.RoleId).HasName("PK__Roles__8AFACE3A3157FDEA");
+            entity.HasKey(e => e.RoleId).HasName("PK__Roles__8AFACE3AC3CAF328");
 
             entity.Property(e => e.RoleId).HasColumnName("RoleID");
             entity.Property(e => e.Description).HasMaxLength(255);
