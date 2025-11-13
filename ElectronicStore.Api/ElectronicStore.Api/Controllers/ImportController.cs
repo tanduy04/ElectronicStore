@@ -143,7 +143,7 @@ namespace ElectronicStore.Api.Controllers
                     ImportCode = await GenerateImportCodeAsync(),
                     SupplierId = dto.SupplierID,
                     EmployeeId = employee.EmployeeId,
-                    ImportDate = DateTime.UtcNow,
+                    ImportDate = DateTime.Now,
                     TotalAmount = 0,
                     Status = "Pending",
                     Note = dto.Note,

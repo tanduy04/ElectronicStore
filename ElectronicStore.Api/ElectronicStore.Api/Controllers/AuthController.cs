@@ -55,7 +55,7 @@ namespace ElectronicStore.Api.Controllers
                     RoleId = role_custommer.RoleId,
                     IsActive = true,
                     Avatar = "default-avatar.jpg",
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = DateTime.Now,
                 };
                 _db.Accounts.Add(newAccount);
                 await _db.SaveChangesAsync();
@@ -73,7 +73,7 @@ namespace ElectronicStore.Api.Controllers
                     FullName = dto.FullName,
                     AccountId = account.AccountId,
                     Phone = dto.PhoneNumber,
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = DateTime.Now,
                     Point = 0
                 };
 
@@ -111,7 +111,7 @@ namespace ElectronicStore.Api.Controllers
                 {
                     AccountId = account.AccountId,
                     RefreshToken = refreshToken,
-                    ExpiryDate = DateTime.UtcNow.AddDays(int.Parse(_config["JwtSettings:RefreshTokenExpirationDays"]))
+                    ExpiryDate = DateTime.Now.AddDays(int.Parse(_config["JwtSettings:RefreshTokenExpirationDays"]))
                 });
                 await _db.SaveChangesAsync();
 
@@ -132,7 +132,7 @@ namespace ElectronicStore.Api.Controllers
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
                 var token = _db.AccountTokens.FirstOrDefault(t => t.RefreshToken == dto.RefreshToken);
-                if (token == null || token.ExpiryDate < DateTime.UtcNow)
+                if (token == null || token.ExpiryDate < DateTime.Now)
                     return Unauthorized("Invalid refresh token");
 
                 var account = _db.Accounts.Include(a => a.Role).First(a => a.AccountId == token.AccountId);
@@ -141,7 +141,7 @@ namespace ElectronicStore.Api.Controllers
 
                 // Update token in DB
                 token.RefreshToken = newRefreshToken;
-                token.ExpiryDate = DateTime.UtcNow.AddDays(int.Parse(_config["JwtSettings:RefreshTokenExpirationDays"]));
+                token.ExpiryDate = DateTime.Now.AddDays(int.Parse(_config["JwtSettings:RefreshTokenExpirationDays"]));
                 await _db.SaveChangesAsync();
 
                 return Ok(new { accessToken = newAccessToken, refreshToken = newRefreshToken });

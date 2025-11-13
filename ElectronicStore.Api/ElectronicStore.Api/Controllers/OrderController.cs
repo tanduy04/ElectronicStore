@@ -44,6 +44,7 @@ namespace ElectronicStore.Api.Controllers
             // Query gốc
             var query = _context.Orders
                 .Include(o => o.OrderDetails)
+                .Include(o => o.Payments)
                 .OrderByDescending(o => o.OrderDate);
 
             // Tổng số bản ghi
@@ -62,7 +63,10 @@ namespace ElectronicStore.Api.Controllers
                     shippingAddress = o.ShippingAddress,
                     PhoneNumber = o.PhoneNumber,
                     paymentMethod = o.PaymentMethod,
+                    PaymentStatus= o.Payments.FirstOrDefault().Status,
                     CustomerName = o.FullName,
+                    DiscountByVoucher= o.DiscountVoucher,
+                    DiscountByPoint = o.DiscountPoint,
                     OrderDetails = o.OrderDetails.Select(d => new OrderDetailDto
                     {
                         OrderDetailId = d.OrderDetailId,
@@ -96,6 +100,7 @@ namespace ElectronicStore.Api.Controllers
             // Query gốc
             var query = _context.Orders
                 .Include(o => o.OrderDetails)
+                .Include(o => o.Payments)
                 .AsQueryable();
 
             // Lọc theo trạng thái nếu có
@@ -123,6 +128,10 @@ namespace ElectronicStore.Api.Controllers
                     PhoneNumber = o.PhoneNumber,
                     paymentMethod = o.PaymentMethod,
                     CustomerName = o.FullName,
+                    DiscountByVoucher = o.DiscountVoucher,
+                    DiscountByPoint = o.DiscountPoint,
+                    PaymentStatus = o.Payments.FirstOrDefault().Status,
+
                     OrderDetails = o.OrderDetails.Select(d => new OrderDetailDto
                     {
                         OrderDetailId = d.OrderDetailId,
@@ -154,6 +163,7 @@ namespace ElectronicStore.Api.Controllers
             var baseUrl = GetBaseUrl();
 
             var order = await _context.Orders
+                .Include(o => o.Payments)
                 .Include(o => o.OrderDetails)
                 .ThenInclude(od => od.Product)
                 .FirstOrDefaultAsync(o => o.OrderCode == orderCode);
@@ -170,6 +180,10 @@ namespace ElectronicStore.Api.Controllers
                 PhoneNumber = order.PhoneNumber,
                 paymentMethod = order.PaymentMethod,
                 CustomerName = order.FullName,
+                DiscountByVoucher = order.DiscountVoucher,
+                DiscountByPoint = order.DiscountPoint,
+                PaymentStatus = order.Payments.FirstOrDefault().Status,
+
                 OrderDetails = order.OrderDetails.Select(d => new OrderDetailDto
                 {
                     OrderDetailId = d.OrderDetailId,
@@ -207,6 +221,7 @@ namespace ElectronicStore.Api.Controllers
             // Lấy danh sách đơn hàng của customer
             var orders = await _context.Orders
                 .Include(o => o.OrderDetails)
+                .Include(o => o.Payments)
                 .Where(o => o.CustomerId == customerId)
                 .OrderByDescending(o => o.OrderDate)
                 .Select(o => new OrderDto
@@ -218,7 +233,11 @@ namespace ElectronicStore.Api.Controllers
                     shippingAddress = o.ShippingAddress,
                     PhoneNumber = o.PhoneNumber,
                     paymentMethod = o.PaymentMethod,
-                    CustomerName = o.FullName,  // giả sử bảng Customer có cột Name
+                    DiscountByVoucher = o.DiscountVoucher,
+                    DiscountByPoint = o.DiscountPoint,
+                    PaymentStatus = o.Payments.FirstOrDefault().Status,
+
+                    CustomerName = o.FullName,  
                     OrderDetails = o.OrderDetails.Select(d => new OrderDetailDto
                     {
                         OrderDetailId = d.OrderDetailId,
@@ -312,25 +331,7 @@ namespace ElectronicStore.Api.Controllers
                     return BadRequest("Only orders with 'Pending' status can be cancelled");
 
 
-                var payment = await _context.Payments
-                    .FirstOrDefaultAsync(p => p.OrderCode == order.OrderCode);
-
-                if (payment == null)
-                    return BadRequest("Payment info not found");
-                // Nếu thanh toán VNPay và đã thanh toán => Gọi Refund
-                //if (order.PaymentMethod == "VNPay" && payment.Status == "Paid")
-                //{
-                //    var refundResult = await RefundVNPay(order, payment);
-                //    if (!refundResult.Success)
-                //    {
-                //        await transaction.RollbackAsync();
-                //        return BadRequest($"Refund failed: {refundResult.Message}");
-                //    }
-
-                //    payment.Status = "Refunded";
-                //}
-
-                // Cập nhật trạng thái đơn hàng
+               
                 order.Status = "Cancelled";
                 var itemInOrder = _context.OrderDetails.Where(od => od.OrderCode == order.OrderCode).ToList();
                 foreach (var item in itemInOrder)
@@ -344,7 +345,7 @@ namespace ElectronicStore.Api.Controllers
                 }
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
-                if(order.Customer.Account.Email != null)
+                if(order.Customer.Account != null)
                 _emailService.UpdateOrderStatus(order.Customer.Account.Email, order.OrderCode, "Cancelled");
                 return Ok(new { Message = "Order cancelled successfully", order.OrderCode });
             }
@@ -354,92 +355,112 @@ namespace ElectronicStore.Api.Controllers
                 return StatusCode(500, "Error cancelling order: " + ex.Message);
             }
         }
-
-        private async Task<(bool Success, string Message)> RefundVNPay(Order order, Payment payment)
+        [HttpPut("Refund")]
+        public async Task<IActionResult> RefundOrder(string OrderCode)
         {
-            var config = _config.GetSection("VNPay");
-            string vnp_TmnCode = config["TmnCode"];
-            string vnp_HashSecret = config["HashSecret"];
-            string vnp_Url = "https://sandbox.vnpayment.vn/merchant_webapi/api/transaction";
-
-            // Sử dụng VnPayLibrary giống như khi thanh toán
-            var vnpay = new VnPayLibrary();
-
-            vnpay.AddRequestData("vnp_RequestId", DateTime.Now.Ticks.ToString());
-            vnpay.AddRequestData("vnp_Version", "2.1.0");
-            vnpay.AddRequestData("vnp_Command", "refund");
-            vnpay.AddRequestData("vnp_TmnCode", vnp_TmnCode);
-            vnpay.AddRequestData("vnp_TransactionType", "02");
-            vnpay.AddRequestData("vnp_TxnRef", order.OrderCode);
-            vnpay.AddRequestData("vnp_Amount", ((long)(payment.Amount)).ToString()); // BỎ * 100 - thử hoàn tiền không nhân 100
-            vnpay.AddRequestData("vnp_OrderInfo", "Refund"); // Đơn giản hóa, không có space
-            vnpay.AddRequestData("vnp_TransactionNo", payment.TransactionCode);
-            vnpay.AddRequestData("vnp_TransactionDate", payment.PaymentDate?.ToString("yyyyMMddHHmmss") ?? "");
-            vnpay.AddRequestData("vnp_CreateBy", "system");
-            vnpay.AddRequestData("vnp_CreateDate", DateTime.Now.ToString("yyyyMMddHHmmss"));
-            vnpay.AddRequestData("vnp_IpAddr", "127.0.0.1"); // Dùng IPv4 thay vì ::1
-
-            // Tạo signature theo cách của VnPayLibrary
-            string signData = CreateSignatureData(vnpay.RequestData);
-            string secureHash = Utils.HmacSHA512(vnp_HashSecret, signData);
-
-            // Thử tạo signature không URL encode (có thể API refund khác với payment)
-            string signDataNoEncode = CreateSignatureDataNoEncode(vnpay.RequestData);
-            string secureHashNoEncode = Utils.HmacSHA512(vnp_HashSecret, signDataNoEncode);
-
-            Console.WriteLine("=== DEBUG VNPAY REFUND (DÙNG VNPAY LIBRARY) ===");
-            Console.WriteLine($"Sign data (URL encoded): {signData}");
-            Console.WriteLine($"Secure hash (URL encoded): {secureHash}");
-            Console.WriteLine($"Sign data (NO encode): {signDataNoEncode}");
-            Console.WriteLine($"Secure hash (NO encode): {secureHashNoEncode}");
-
-            // Thử dùng signature không encode trước
-            string finalSecureHash = secureHashNoEncode;
-
-            // Tạo JSON request
-            var requestData = new Dictionary<string, string>();
-            foreach (var item in vnpay.RequestData)
-            {
-                requestData.Add(item.Key, item.Value);
-                Console.WriteLine($"  {item.Key} = '{item.Value}'");
-            }
-            requestData.Add("vnp_SecureHash", finalSecureHash);
-
-            using var httpClient = new HttpClient();
-            var jsonData = JsonConvert.SerializeObject(requestData, Formatting.Indented);
-            var httpContent = new StringContent(jsonData, Encoding.UTF8, "application/json");
-
-            Console.WriteLine($"JSON gửi đi: {jsonData}");
-
             try
             {
-                var response = await httpClient.PostAsync(vnp_Url, httpContent);
-                var content = await response.Content.ReadAsStringAsync();
-
-                Console.WriteLine($"Response từ VNPay: {content}");
-
-                var responseObj = JsonConvert.DeserializeObject<Dictionary<string, string>>(content);
-
-                if (responseObj != null && responseObj.TryGetValue("vnp_ResponseCode", out string responseCode))
-                {
-                    if (responseCode == "00")
-                    {
-                        return (true, "Hoàn tiền thành công");
-                    }
-                    else
-                    {
-                        string message = responseObj.TryGetValue("vnp_Message", out string msg) ? msg : "Lỗi không xác định";
-                        return (false, $"Hoàn tiền thất bại: {responseCode} - {message}");
-                    }
-                }
-
-                return (false, $"Định dạng response không hợp lệ: {content}");
+                var order = await _context.Orders.FirstOrDefaultAsync(o => o.OrderCode == OrderCode && o.Status == "Cancelled");
+                if (order == null) return NotFound("Order not found");
+                var payment = await _context.Payments.FirstOrDefaultAsync(p => p.OrderCode == order.OrderCode);
+                if (payment == null) return NotFound("Payment not found");
+                if (payment.Status != "Paid")
+                    return BadRequest("Only paid orders can be refunded");
+                payment.Status = "Refunded";
+                _context.Payments.Update(payment);
+                await _context.SaveChangesAsync();
+                return Ok(new { Message = "Order refunded successfully", OrderCode = order.OrderCode });
             }
             catch (Exception ex)
             {
-                return (false, $"Có lỗi xảy ra: {ex.Message}");
+                return StatusCode(500, "Error processing refund: " + ex.Message);
             }
         }
+        //private async Task<(bool Success, string Message)> RefundVNPay(Order order, Payment payment)
+        //{
+        //    var config = _config.GetSection("VNPay");
+        //    string vnp_TmnCode = config["TmnCode"];
+        //    string vnp_HashSecret = config["HashSecret"];
+        //    string vnp_Url = "https://sandbox.vnpayment.vn/merchant_webapi/api/transaction";
+
+        //    // Sử dụng VnPayLibrary giống như khi thanh toán
+        //    var vnpay = new VnPayLibrary();
+
+        //    vnpay.AddRequestData("vnp_RequestId", DateTime.Now.Ticks.ToString());
+        //    vnpay.AddRequestData("vnp_Version", "2.1.0");
+        //    vnpay.AddRequestData("vnp_Command", "refund");
+        //    vnpay.AddRequestData("vnp_TmnCode", vnp_TmnCode);
+        //    vnpay.AddRequestData("vnp_TransactionType", "02");
+        //    vnpay.AddRequestData("vnp_TxnRef", order.OrderCode);
+        //    vnpay.AddRequestData("vnp_Amount", ((long)(payment.Amount)).ToString()); // BỎ * 100 - thử hoàn tiền không nhân 100
+        //    vnpay.AddRequestData("vnp_OrderInfo", "Refund"); // Đơn giản hóa, không có space
+        //    vnpay.AddRequestData("vnp_TransactionNo", payment.TransactionCode);
+        //    vnpay.AddRequestData("vnp_TransactionDate", payment.PaymentDate?.ToString("yyyyMMddHHmmss") ?? "");
+        //    vnpay.AddRequestData("vnp_CreateBy", "system");
+        //    vnpay.AddRequestData("vnp_CreateDate", DateTime.Now.ToString("yyyyMMddHHmmss"));
+        //    vnpay.AddRequestData("vnp_IpAddr", "127.0.0.1"); // Dùng IPv4 thay vì ::1
+
+        //    // Tạo signature theo cách của VnPayLibrary
+        //    string signData = CreateSignatureData(vnpay.RequestData);
+        //    string secureHash = Utils.HmacSHA512(vnp_HashSecret, signData);
+
+        //    // Thử tạo signature không URL encode (có thể API refund khác với payment)
+        //    string signDataNoEncode = CreateSignatureDataNoEncode(vnpay.RequestData);
+        //    string secureHashNoEncode = Utils.HmacSHA512(vnp_HashSecret, signDataNoEncode);
+
+        //    Console.WriteLine("=== DEBUG VNPAY REFUND (DÙNG VNPAY LIBRARY) ===");
+        //    Console.WriteLine($"Sign data (URL encoded): {signData}");
+        //    Console.WriteLine($"Secure hash (URL encoded): {secureHash}");
+        //    Console.WriteLine($"Sign data (NO encode): {signDataNoEncode}");
+        //    Console.WriteLine($"Secure hash (NO encode): {secureHashNoEncode}");
+
+        //    // Thử dùng signature không encode trước
+        //    string finalSecureHash = secureHashNoEncode;
+
+        //    // Tạo JSON request
+        //    var requestData = new Dictionary<string, string>();
+        //    foreach (var item in vnpay.RequestData)
+        //    {
+        //        requestData.Add(item.Key, item.Value);
+        //        Console.WriteLine($"  {item.Key} = '{item.Value}'");
+        //    }
+        //    requestData.Add("vnp_SecureHash", finalSecureHash);
+
+        //    using var httpClient = new HttpClient();
+        //    var jsonData = JsonConvert.SerializeObject(requestData, Formatting.Indented);
+        //    var httpContent = new StringContent(jsonData, Encoding.UTF8, "application/json");
+
+        //    Console.WriteLine($"JSON gửi đi: {jsonData}");
+
+        //    try
+        //    {
+        //        var response = await httpClient.PostAsync(vnp_Url, httpContent);
+        //        var content = await response.Content.ReadAsStringAsync();
+
+        //        Console.WriteLine($"Response từ VNPay: {content}");
+
+        //        var responseObj = JsonConvert.DeserializeObject<Dictionary<string, string>>(content);
+
+        //        if (responseObj != null && responseObj.TryGetValue("vnp_ResponseCode", out string responseCode))
+        //        {
+        //            if (responseCode == "00")
+        //            {
+        //                return (true, "Hoàn tiền thành công");
+        //            }
+        //            else
+        //            {
+        //                string message = responseObj.TryGetValue("vnp_Message", out string msg) ? msg : "Lỗi không xác định";
+        //                return (false, $"Hoàn tiền thất bại: {responseCode} - {message}");
+        //            }
+        //        }
+
+        //        return (false, $"Định dạng response không hợp lệ: {content}");
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return (false, $"Có lỗi xảy ra: {ex.Message}");
+        //    }
+        //}
 
         // Method helper để tạo signature data giống VnPayLibrary
         private string CreateSignatureData(SortedList<string, string> requestData)

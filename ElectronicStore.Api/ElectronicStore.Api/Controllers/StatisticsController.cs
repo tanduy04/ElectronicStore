@@ -25,7 +25,7 @@ namespace ElectronicStore.Api.Controllers
         [HttpGet("by-day")]
         public async Task<IActionResult> GetByDay([FromQuery] DateTime? date)
         {
-            DateTime targetDate = date?.Date ?? DateTime.UtcNow.Date;
+            DateTime targetDate = date?.Date ?? DateTime.Now.Date;
 
             var totalRevenue = await _context.Orders
                 .Where(o => o.Status == "Delivered" && o.OrderDate.Date == targetDate)
@@ -53,8 +53,8 @@ namespace ElectronicStore.Api.Controllers
         [HttpGet("by-month")]
         public async Task<IActionResult> GetByMonth([FromQuery] int? month, [FromQuery] int? year)
         {
-            int targetMonth = month ?? DateTime.UtcNow.Month;
-            int targetYear = year ?? DateTime.UtcNow.Year;
+            int targetMonth = month ?? DateTime.Now.Month;
+            int targetYear = year ?? DateTime.Now.Year;
 
             var totalRevenue = await _context.Orders
                 .Where(o => o.Status == "Delivered" &&
@@ -86,7 +86,7 @@ namespace ElectronicStore.Api.Controllers
         [HttpGet("by-year")]
         public async Task<IActionResult> GetByYear([FromQuery] int? year)
         {
-            int targetYear = year ?? DateTime.UtcNow.Year;
+            int targetYear = year ?? DateTime.Now.Year;
 
             var totalRevenue = await _context.Orders
                 .Where(o => o.Status == "Delivered" && o.OrderDate.Year == targetYear)

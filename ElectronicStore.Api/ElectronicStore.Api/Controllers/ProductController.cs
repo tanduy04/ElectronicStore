@@ -188,7 +188,7 @@ namespace ElectronicStore.Api.Controllers
                     SupplierId = dto.SupplierID,
                     IsActive = dto.IsActive,
                     ManufactureYear = dto.ManufactureYear,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.Now
                 };
 
                 _context.Products.Add(product);
@@ -232,7 +232,7 @@ namespace ElectronicStore.Api.Controllers
         //        string? descriptionJson = ParseDescriptionToJson(dto.Description);
 
         //        product.Description = descriptionJson;
-        //        product.UpdatedAt = DateTime.UtcNow;
+        //        product.UpdatedAt = DateTime.Now;
 
         //        await _context.SaveChangesAsync();
 
@@ -277,7 +277,7 @@ namespace ElectronicStore.Api.Controllers
                 product.SupplierId = dto.SupplierID;
                 product.ManufactureYear = dto.ManufactureYear;
                 product.IsActive = dto.IsActive;
-                product.UpdatedAt = DateTime.UtcNow;
+                product.UpdatedAt = DateTime.Now;
 
                 string folder = GetProductFolder();
 

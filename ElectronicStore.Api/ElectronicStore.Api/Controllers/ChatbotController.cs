@@ -271,7 +271,7 @@ HƯỚNG DẪN:
                 if (!filter.IsProductQuery)
                 {
                     var simpleMessage = filter.Message ?? "Xin chào! Tôi có thể giúp gì cho bạn?";
-                    history.Add(new ChatMessage { Role = "model", Content = simpleMessage, Timestamp = DateTime.UtcNow });
+                    history.Add(new ChatMessage { Role = "model", Content = simpleMessage, Timestamp = DateTime.Now });
                     HttpContext.Session.SetObjectAsJson(ChatHistoryKey, history);
                     return Ok(new { message = simpleMessage });
                 }
@@ -373,7 +373,7 @@ YÊU CẦU: Chỉ trả VĂN BẢN (text), KHÔNG trả JSON.";
                 // Lưu vào lịch sử với separator + products JSON
                 var separator = "|||";
                 var modelContent = finalMessage + "\n" + separator + "\n" + productsJson;
-                history.Add(new ChatMessage { Role = "model", Content = modelContent, Timestamp = DateTime.UtcNow });
+                history.Add(new ChatMessage { Role = "model", Content = modelContent, Timestamp = DateTime.Now });
                 HttpContext.Session.SetObjectAsJson(ChatHistoryKey, history);
 
                 return Ok(new { message = finalMessage, products = productsForClient });

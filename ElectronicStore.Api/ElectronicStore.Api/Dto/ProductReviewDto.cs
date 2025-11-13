@@ -23,7 +23,6 @@ namespace ElectronicStore.Api.Dto
     public class ReplyReview
     {
         [Required]
-
         public int ParentID { get; set; }
         [Required]
 
@@ -35,6 +34,7 @@ namespace ElectronicStore.Api.Dto
         public int ParentID { get; set; }
         public string Name { get; set; }
         public string Content { get; set; }
+        public DateTime createAt { get; set; }
     }
     public class ProductReviewDto
     {

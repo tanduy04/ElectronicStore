@@ -26,11 +26,42 @@ namespace ElectronicStore.Api.Controllers
         {
             try
             {
-                var reviews = await _context.ProductReviews.Where(r => r.ParentId == null && r.IsActive == isactive)
-                                .OrderByDescending(r => r.CreatedAt)
-                                .ToListAsync();
+                var reviews = await _context.ProductReviews
+                .Where(r => r.ParentId == null && r.IsActive == isactive)
+                .OrderByDescending(r => r.CreatedAt)
+                .Select(r => new ProductReviewDto
+                {
+                    ReviewId = r.ReviewId,
+                    ProductId = r.ProductId,
+                    FullName = r.FullName,
+                    Phone = r.Phone,
+                    Rating = r.Rating,
+                    ParentId = r.ParentId,
+                    Content = r.Content,
+                    CreatedAt = r.CreatedAt,
+                    IsActive = r.IsActive
+
+                })
+                .ToListAsync();
                 if (reviews == null || reviews.Count == 0)
                     return NotFound();
+                foreach (var review in reviews)
+                {
+                    var childReview = await _context.ProductReviews
+                         .Where(cr => cr.ParentId == review.ReviewId)
+                         .OrderByDescending(r => r.CreatedAt)
+                         .Select(r => new ViewReplyReview
+                         {
+                             ParentID = r.ParentId.Value,
+                             ReviewID = r.ReviewId,
+                             Name = r.FullName,
+                             Content = r.Content,
+                             createAt = r.CreatedAt
+                         })
+               .FirstOrDefaultAsync();
+                    if (childReview != null)
+                        review.ReplyReview = childReview;
+                }
                 return Ok(reviews);
             }
             catch (Exception ex)
@@ -74,7 +105,7 @@ namespace ElectronicStore.Api.Controllers
                 replyReview.ParentId = dto.ParentID;
                 replyReview.Content = dto.Content;
                 replyReview.Rating = reviewParent.Rating;
-                replyReview.CreatedAt = DateTime.UtcNow;
+                replyReview.CreatedAt = DateTime.Now;
                 replyReview.IsActive = true;
                 _context.ProductReviews.Add(replyReview);
                 reviewParent.IsActive = true;
@@ -101,6 +132,9 @@ namespace ElectronicStore.Api.Controllers
                     Rating = r.Rating,
                     ParentId = r.ParentId,
                     Content = r.Content,
+                    CreatedAt = r.CreatedAt,
+                    IsActive = r.IsActive
+
                 })
                 .ToListAsync();
             if (reviews == null || reviews.Count == 0)
@@ -138,7 +172,7 @@ namespace ElectronicStore.Api.Controllers
                 productReview.ParentId = null;
                 productReview.Content = dto.Content;
                 productReview.Rating = dto.Rating;
-                productReview.CreatedAt = DateTime.UtcNow;
+                productReview.CreatedAt = DateTime.Now;
                 productReview.IsActive = false;
                 _context.ProductReviews.Add(productReview);
                 await _context.SaveChangesAsync();

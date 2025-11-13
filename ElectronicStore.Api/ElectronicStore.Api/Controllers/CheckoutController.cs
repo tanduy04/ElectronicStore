@@ -31,7 +31,7 @@ namespace ElectronicStore.Api.Controllers
                 v.VoucherCode == voucherCode);
             if (voucher == null)
                 return NotFound("Voucher not found");
-            if (!voucher.IsActive || voucher.StartDate > DateTime.UtcNow || voucher.EndDate < DateTime.UtcNow)
+            if (!voucher.IsActive || voucher.StartDate > DateTime.Now || voucher.EndDate < DateTime.Now)
                 return BadRequest("Voucher has expired.");
             if (voucher.Quantity <= 0)
                 return BadRequest("Voucher is out of stock");
@@ -106,8 +106,8 @@ namespace ElectronicStore.Api.Controllers
                 {
                     var voucher = _context.Vouchers.FirstOrDefault(v =>
                         v.VoucherCode == dto.VoucherCode
-                        && v.StartDate <= DateTime.UtcNow
-                        && v.EndDate >= DateTime.UtcNow
+                        && v.StartDate <= DateTime.Now
+                        && v.EndDate >= DateTime.Now
                         && v.IsActive == true
                         && v.Quantity > 0
                         )
@@ -282,8 +282,8 @@ namespace ElectronicStore.Api.Controllers
                 {
                     var voucher = _context.Vouchers.FirstOrDefault(v =>
                         v.VoucherCode == dto.VoucherCode
-                        && v.StartDate <= DateTime.UtcNow
-                        && v.EndDate >= DateTime.UtcNow
+                        && v.StartDate <= DateTime.Now
+                        && v.EndDate >= DateTime.Now
                         && v.IsActive == true
                         && v.Quantity > 0);
                     if (voucher != null)
@@ -480,8 +480,8 @@ namespace ElectronicStore.Api.Controllers
                 {
                     var voucher = _context.Vouchers.FirstOrDefault(v =>
                         v.VoucherCode == dto.VoucherCode
-                        && v.StartDate <= DateTime.UtcNow
-                        && v.EndDate >= DateTime.UtcNow
+                        && v.StartDate <= DateTime.Now
+                        && v.EndDate >= DateTime.Now
                         && v.IsActive == true
                         && v.Quantity > 0
                         )

@@ -1,4 +1,6 @@
-﻿namespace ElectronicStore.Api.Dto
+﻿using System.Diagnostics.Contracts;
+
+namespace ElectronicStore.Api.Dto
 {
     public class OrderDetailDto
     {
@@ -12,6 +14,9 @@
     {
         public string OrderCode { get; set; }
         public DateTime OrderDate { get; set; }
+        public decimal? DiscountByVoucher { get; set; }  
+        public decimal? DiscountByPoint { get; set; }
+        public string PaymentStatus { get; set; }
         public decimal TotalAmount { get; set; }
         public string Status { get; set; }
         public string shippingAddress { get; set; }
