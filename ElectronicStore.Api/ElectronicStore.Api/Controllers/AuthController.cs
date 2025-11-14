@@ -54,7 +54,8 @@ namespace ElectronicStore.Api.Controllers
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
                     RoleId = role_custommer.RoleId,
                     IsActive = true,
-                    Avatar = "default-avatar.jpg",
+                    LoginType= "Local",
+                   Avatar = "default-avatar.jpg",
                     CreatedAt = DateTime.Now,
                 };
                 _db.Accounts.Add(newAccount);

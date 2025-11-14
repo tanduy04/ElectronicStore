@@ -78,9 +78,7 @@ public partial class ElectronicStoreContext : DbContext
 
             entity.HasIndex(e => e.Username, "UQ_Accounts_Username").IsUnique();
 
-            entity.Property(e => e.AccountId)
-                .ValueGeneratedNever()
-                .HasColumnName("AccountID");
+            entity.Property(e => e.AccountId).HasColumnName("AccountID");
             entity.Property(e => e.Avatar).HasMaxLength(256);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.Email).HasMaxLength(256);
