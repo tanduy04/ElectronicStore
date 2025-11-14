@@ -172,7 +172,7 @@ namespace ElectronicStore.Api.Controllers
                     var customers = await _context.Customers
                         .Include(c => c.Account)
                         .ThenInclude(a => a.Role)
-                        .Where(c => c.Phone == phone)
+                        .Where(c => c.Phone.Contains(phone))
                         .ToListAsync();
 
                     if (!customers.Any()) return NotFound("No customers found with this phone number.");
@@ -196,21 +196,30 @@ namespace ElectronicStore.Api.Controllers
 
                     var customer = await _context.Customers.FindAsync(id);
                     if (customer == null) return NotFound("Customer not found.");
+                    else
+                    {
+                        customer.FullName = dto.FullName;
+                        customer.Address = dto.Address;
+                        customer.Phone = dto.PhoneNumber;
+                        _context.Customers.Update(customer);
 
+                    }
                     var account = await _context.Accounts.FirstOrDefaultAsync(a => a.AccountId == customer.AccountId);
-                    if (account == null) return NotFound("Account not found.");
+                    if (account != null)
+                    {
+                        if (_context.Accounts.Any(a => a.Email == dto.Email && a.AccountId != account.AccountId))
+                            return BadRequest("Email already exists");
+                        if (_context.Customers.Any(a => a.Phone == dto.PhoneNumber && a.CustomerId != customer.CustomerId))
+                            return BadRequest("Phone number already exists");
 
-                    if (_context.Accounts.Any(a => a.Email == dto.Email && a.AccountId != account.AccountId))
-                        return BadRequest("Email already exists");
-                    if (_context.Customers.Any(a => a.Phone == dto.PhoneNumber && a.CustomerId != customer.CustomerId))
-                        return BadRequest("Phone number already exists");
-                    customer.FullName = dto.FullName;
-                    customer.Address = dto.Address;
-                    customer.Phone = dto.PhoneNumber;
-                    account.Email = dto.Email;
+                        account.Email = dto.Email;
+                        account.IsActive = dto.IsActive;
+                        _context.Accounts.Update(account);
 
-                    _context.Accounts.Update(account);
-                    _context.Customers.Update(customer);
+                    }
+
+
+
                     await _context.SaveChangesAsync();
 
                     return Ok("Customer updated successfully.");

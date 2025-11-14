@@ -43,7 +43,7 @@ namespace ElectronicStore.Api.Dto
         [Required]
         public DateOnly HireDate { get; set; }
 
-        public bool IsActive { get; set; } = true;
+        public bool IsActive { get; set; }
         public string? Address { get; set; }
 
         public string? FullName { get; set; }

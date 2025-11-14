@@ -126,7 +126,7 @@ namespace ElectronicStore.Api.Controllers
 
                 var employees = await _context.Employees
                     .Include(c => c.Account)
-                    .Where(c => c.Phone == phone)
+                    .Where(c => c.Phone.Contains(phone))
                     .ToListAsync();
 
                 if (!employees.Any()) return NotFound("No employees found with this phone number.");
