@@ -37,22 +37,30 @@ namespace ElectronicStore.Api.Controllers
 
             private object MapCustomerToDto(Customer c)
             {
-                var baseUrl = $"{Request.Scheme}://{Request.Host}/";
-
-                return new
+                try
                 {
-                    c.CustomerId,
-                    c.FullName,
-                    c.Address,
-                    c.Gender,
-                    c.BirthDate,
-                    c.Phone,
-                    c.Account.Email,
-                    c.Point,
-                    c.Account.IsActive,
-                    ImageUrl = $"{baseUrl}{_config["ImageSettings:AccountPath"]}{c.Account.Avatar}",
+                    var baseUrl = $"{Request.Scheme}://{Request.Host}/";
+                    return new
+                    {
+                        c.CustomerId,
+                        c.FullName,
+                        c.Address,
+                        c.Gender,
+                        c.BirthDate,
+                        c.Phone,
+                        c.Point,
+                        Email = c.Account?.Email,
+                        IsActive = c.Account?.IsActive,
+                        ImageUrl = c.Account != null
+                ? $"{baseUrl}{_config["ImageSettings:AccountPath"]}{c.Account.Avatar}"
+                : null
+                    };
+                }
+                catch (Exception ex)
+                {
+                    return StatusCode(500, "Internal server error: " + ex.Message);
+                }
 
-                };
             }
             [HttpGet]
             [Authorize(Roles = "Admin,Employee")]
@@ -95,7 +103,7 @@ namespace ElectronicStore.Api.Controllers
                 {
                     var baseUrl = $"{Request.Scheme}://{Request.Host}/";
 
-                    // Lấy thông tin customer kèm account
+                    // Lấy thông tin customer kèm account (nếu có)
                     var customer = await _context.Customers
                         .Include(c => c.Account)
                         .Where(c => c.CustomerId == id)
@@ -107,19 +115,25 @@ namespace ElectronicStore.Api.Controllers
                             c.Gender,
                             BirthDate = c.BirthDate.HasValue
                                 ? c.BirthDate.Value.ToString("dd/MM/yyyy")
-                                : null, // format ngày kiểu Việt Nam
+                                : null,
                             c.Phone,
-                            c.Account.Email,
+
+                            // Nếu Account null → trả về null
+                            Email = c.Account != null ? c.Account.Email : null,
+                            IsActive = c.Account != null ? (bool?)c.Account.IsActive : null,
+
                             c.Point,
-                            c.Account.IsActive,
-                            ImageUrl = $"{baseUrl}{_config["ImageSettings:AccountPath"]}{c.Account.Avatar}"
+
+                            ImageUrl = c.Account != null
+                                ? $"{baseUrl}{_config["ImageSettings:AccountPath"]}{c.Account.Avatar}"
+                                : null
                         })
                         .FirstOrDefaultAsync();
 
                     if (customer == null)
                         return NotFound("Customer not found.");
 
-                    // 🧠 Kiểm tra quyền truy cập
+                    // Kiểm tra quyền khách hàng (Customer role)
                     if (User.IsInRole("Customer"))
                     {
                         var accountId = int.Parse(User.FindFirst("AccountID").Value);
@@ -127,14 +141,11 @@ namespace ElectronicStore.Api.Controllers
                         var customerOfUser = await _context.Customers
                             .FirstOrDefaultAsync(c => c.AccountId == accountId);
 
-                        // Nếu không phải chính chủ → cấm truy cập
                         if (customerOfUser == null || customerOfUser.CustomerId != id)
                         {
                             return Forbid("You are not authorized to access this customer's information.");
                         }
                     }
-                    // Nếu role là Admin hoặc Employee → không cần kiểm tra thêm gì
-                    // vì đã qua [Authorize]
 
                     return Ok(customer);
                 }
@@ -145,7 +156,8 @@ namespace ElectronicStore.Api.Controllers
             }
 
 
-            
+
+
 
             // GET: api/customers/search?phone=0123456789
             [HttpGet("search")]
