@@ -412,6 +412,35 @@ namespace ElectronicStore.Api.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
+        [HttpGet("get-price-flashsale")]
+        public async Task<IActionResult> UpdatePrice(int productId,int quantity)
+        {
+            try
+            {
+                var product =  await _context.Products.AsNoTracking().FirstOrDefaultAsync(p => p.ProductId == productId);
+                if (product == null) return NotFound();
+                var today = DateOnly.FromDateTime(System.DateTime.Now);
+                var now = TimeOnly.FromDateTime(System.DateTime.Now);
+                var flashSaleItem = await _context.FlashSaleItems
+                    .Include(fsi => fsi.FlashSale)
+                    .FirstOrDefaultAsync(fsi => fsi.ProductId == productId &&
+                        fsi.FlashSale.DateSale == today &&
+                        fsi.FlashSale.StartTime <= now &&
+                        fsi.FlashSale.EndTime > now &&
+                        fsi.Quantity >= quantity) 
+                        ;
+                if (flashSaleItem == null)
+                {
+                    return Ok(product.SellPrice);
+                }
+                return Ok(flashSaleItem.SellPrice);
+                
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
 
     }
 }

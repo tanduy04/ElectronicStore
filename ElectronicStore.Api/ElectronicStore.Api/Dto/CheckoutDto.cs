@@ -13,6 +13,7 @@ namespace ElectronicStore.Api.Dto
         public string Address { get; set; }
         public string? VoucherCode { get; set; }
         public bool? usePoint { get; set; } = false;
+        public string? ReturnUrl { get; set; }
     }
     public class CheckoutProductDto
     {
@@ -29,6 +30,8 @@ namespace ElectronicStore.Api.Dto
         [Required]
         [RegularExpression("^(VNPAY|COD)$", ErrorMessage = "Payment method must be 'VNPAY' or 'COD'")]
         public string method { get; set; }
+        public string? ReturnUrl { get; set; }
+
     }
     public class ProductItem
     {

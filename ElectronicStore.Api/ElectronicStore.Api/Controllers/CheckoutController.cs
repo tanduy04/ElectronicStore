@@ -24,18 +24,26 @@ namespace ElectronicStore.Api.Controllers
             _context = context;
             _config = config;
         }
+        [Authorize]
         [HttpGet("check-voucher/{voucherCode}")]
         public async Task<IActionResult> CheckVoucher(string voucherCode)
         {
+            var accountId = User.FindFirst("AccountID")?.Value;
+            var voucherUsed = await _context.Orders.FirstOrDefaultAsync(o => o.VoucherCode == voucherCode && o.Customer.AccountId == int.Parse(accountId));
+            if (voucherUsed != null && voucherCode != null)
+            {
+                return BadRequest("You have used this voucher");
+            }
             var voucher = await _context.Vouchers.FirstOrDefaultAsync(v =>
                 v.VoucherCode == voucherCode);
+
             if (voucher == null)
                 return NotFound("Voucher not found");
             if (!voucher.IsActive || voucher.StartDate > DateTime.Now || voucher.EndDate < DateTime.Now)
                 return BadRequest("Voucher has expired.");
             if (voucher.Quantity <= 0)
                 return BadRequest("Voucher is out of stock");
-            return Ok("Vouch applied successfully");
+            return Ok(voucher);
         }
         [HttpPost("cod")]
         [Authorize]
@@ -368,7 +376,9 @@ namespace ElectronicStore.Api.Controllers
 
                 var config = _config.GetSection("VNPay");
 
-                string vnp_Returnurl = config["ReturnUrl"]; // Callback
+                string vnp_Returnurl = !string.IsNullOrEmpty(dto.ReturnUrl)
+                    ? dto.ReturnUrl
+                    : config["ReturnUrl"]; // Callback
                 string vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
                 string vnp_TmnCode = config["TmnCode"]; // mã merchant
                 string vnp_HashSecret = config["HashSecret"]; // secret key
@@ -664,7 +674,11 @@ namespace ElectronicStore.Api.Controllers
 
                     var config = _config.GetSection("VNPay");
 
-                    string vnp_Returnurl = config["ReturnUrl"]; // Callback
+                    string vnp_Returnurl = !string.IsNullOrEmpty(dto.ReturnUrl)
+                    ? dto.ReturnUrl
+                    : config["ReturnUrl"];// Callback
+                    Console.WriteLine($"[VNPay] ReturnUrl from DTO: {dto.ReturnUrl ?? "NULL"}");
+                    Console.WriteLine($"[VNPay] Final ReturnUrl used: {vnp_Returnurl}");
                     string vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
                     string vnp_TmnCode = config["TmnCode"]; // mã merchant
                     string vnp_HashSecret = config["HashSecret"]; // secret key

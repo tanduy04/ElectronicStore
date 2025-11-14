@@ -86,4 +86,5 @@ namespace ElectronicStore.Api.Dto
         public decimal OriginalPrice { get; set; }
         public string? imageUrl { get; set; }
     }
+    
 }
