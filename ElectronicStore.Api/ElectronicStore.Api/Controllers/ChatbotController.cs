@@ -320,6 +320,7 @@ HƯỚNG DẪN:
 
                     return new
                     {
+                        id= r.ProductId,
                         name = r.ProductName,
                         price = r.SellPrice,
                         imageUrl = string.IsNullOrEmpty(r.MainImage) ? null : $"{baseUrl}{imagePath}{r.MainImage}"
