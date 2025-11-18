@@ -242,11 +242,11 @@ namespace ElectronicStore.Api.Controllers
 
                     var account = await _context.Accounts.FirstOrDefaultAsync(a => a.AccountId == int.Parse(User.FindFirst("AccountID").Value));
                     if (account == null) return NotFound("Account not found.");
-                    var customer = await _context.Customers.FindAsync(account.AccountId);
+                    var customer = await _context.Customers.FirstOrDefaultAsync( C => C.AccountId == account.AccountId);
                     if (customer == null) return NotFound("Customer not found.");
                     if (_context.Accounts.Any(a => a.Email == dto.Email && a.AccountId != account.AccountId))
                         return BadRequest("Email already exists");
-                    if (_context.Customers.Any(a => a.Phone == dto.PhoneNumber && a.CustomerId != customer.AccountId))
+                    if (_context.Customers.Any(a => a.Phone == dto.PhoneNumber && a.CustomerId != customer.CustomerId))
                         return BadRequest("Phone number already exists");
                     customer.FullName = dto.FullName;
                     customer.Phone = dto.PhoneNumber;
