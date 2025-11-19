@@ -21,6 +21,8 @@ public partial class Import
 
     public string? Note { get; set; }
 
+    public string? PaymentStatus { get; set; }
+
     public virtual Employee Employee { get; set; } = null!;
 
     public virtual ICollection<ImportDetail> ImportDetails { get; set; } = new List<ImportDetail>();

@@ -37,6 +37,9 @@ namespace ElectronicStore.Api.Controllers
                     imports.EmployeeId,
                     imports.ImportDate,
                     imports.TotalAmount,
+                    imports.Status,
+                    imports.PaymentStatus,
+
                     EmployeeName = imports.Employee.FullName,
                     imports.Note,
                     ImportDetails = imports.ImportDetails.Select(detail => new
@@ -68,6 +71,8 @@ namespace ElectronicStore.Api.Controllers
                     imports.EmployeeId,
                     imports.ImportDate,
                     imports.TotalAmount,
+                    imports.Status,
+                    imports.PaymentStatus,
                     EmployeeName = imports.Employee.FullName,
                     imports.Note,
                     ImportDetails = imports.ImportDetails.Select(detail => new
@@ -146,6 +151,7 @@ namespace ElectronicStore.Api.Controllers
                     ImportDate = DateTime.Now,
                     TotalAmount = 0,
                     Status = "Pending",
+                    PaymentStatus = "UnPaid",
                     Note = dto.Note,
                 };
                 _context.Imports.Add(import);
@@ -178,7 +184,7 @@ namespace ElectronicStore.Api.Controllers
             }
             
         }
-        [HttpPut("create")]
+        [HttpPut("update-status")]
         [Authorize(Roles = "Admin,Employee")]
         public async Task<IActionResult> UpdateStatusDelivered([FromForm] int importId, [FromForm] string status)
         {
@@ -211,5 +217,21 @@ namespace ElectronicStore.Api.Controllers
             await _context.SaveChangesAsync();
             return Ok("Status updated successfully");
         }
+        [HttpPut("update-payment")]
+        [Authorize(Roles = "Admin,Employee")]
+        public async Task<IActionResult> UpdateStatusPayment(int importId)
+        {
+            var import = await _context.Imports.FirstOrDefaultAsync(i => i.ImportId == importId && i.Status == "Delivered" && i.PaymentStatus =="UnPaid");
+            if (import == null)
+            {
+                return NotFound("Import not found");
+            }
+            import.PaymentStatus = "Paid";
+            _context.Imports.Update(import);
+            await _context.SaveChangesAsync();
+            
+            return Ok("Status updated successfully");
+        }
+
     }
 }

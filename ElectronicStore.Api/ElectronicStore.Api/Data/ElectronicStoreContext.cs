@@ -298,6 +298,9 @@ public partial class ElectronicStoreContext : DbContext
             entity.Property(e => e.ImportCode).HasMaxLength(50);
             entity.Property(e => e.ImportDate).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.Note).HasMaxLength(1000);
+            entity.Property(e => e.PaymentStatus)
+                .HasMaxLength(20)
+                .IsUnicode(false);
             entity.Property(e => e.Status).HasMaxLength(50);
             entity.Property(e => e.SupplierId).HasColumnName("SupplierID");
             entity.Property(e => e.TotalAmount).HasColumnType("decimal(18, 2)");
