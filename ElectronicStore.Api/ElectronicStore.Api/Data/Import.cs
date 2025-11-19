@@ -27,7 +27,5 @@ public partial class Import
 
     public virtual ICollection<ImportDetail> ImportDetails { get; set; } = new List<ImportDetail>();
 
-    public virtual Supplier ImportNavigation { get; set; } = null!;
-
     public virtual Supplier Supplier { get; set; } = null!;
 }

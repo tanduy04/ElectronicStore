@@ -291,9 +291,7 @@ public partial class ElectronicStoreContext : DbContext
 
             entity.HasIndex(e => e.ImportCode, "UQ__Imports__43999138C02200B8").IsUnique();
 
-            entity.Property(e => e.ImportId)
-                .ValueGeneratedOnAdd()
-                .HasColumnName("ImportID");
+            entity.Property(e => e.ImportId).HasColumnName("ImportID");
             entity.Property(e => e.EmployeeId).HasColumnName("EmployeeID");
             entity.Property(e => e.ImportCode).HasMaxLength(50);
             entity.Property(e => e.ImportDate).HasDefaultValueSql("(sysutcdatetime())");
@@ -310,12 +308,7 @@ public partial class ElectronicStoreContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Imports_Employees");
 
-            entity.HasOne(d => d.ImportNavigation).WithOne(p => p.ImportImportNavigation)
-                .HasForeignKey<Import>(d => d.ImportId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Imports_Supplier");
-
-            entity.HasOne(d => d.Supplier).WithMany(p => p.ImportSuppliers)
+            entity.HasOne(d => d.Supplier).WithMany(p => p.Imports)
                 .HasForeignKey(d => d.SupplierId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Import_Supplier");

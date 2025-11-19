@@ -13,9 +13,7 @@ public partial class Supplier
 
     public string? SupplierAddress { get; set; }
 
-    public virtual Import? ImportImportNavigation { get; set; }
-
-    public virtual ICollection<Import> ImportSuppliers { get; set; } = new List<Import>();
+    public virtual ICollection<Import> Imports { get; set; } = new List<Import>();
 
     public virtual ICollection<Product> Products { get; set; } = new List<Product>();
 }
