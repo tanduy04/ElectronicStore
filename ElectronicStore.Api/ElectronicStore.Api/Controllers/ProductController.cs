@@ -92,9 +92,11 @@ namespace ElectronicStore.Api.Controllers
         {
             try
             {
+
                 var product = await _context.Products.Include(p => p.ProductImages).Include(p => p.Brand).Include(p => p.Category).FirstOrDefaultAsync(p => p.ProductId == id);
                 if (product == null) return NotFound("Product not found.");
-
+                var averageRating = _context.ProductReviews.Where(s => s.ProductId == product.ProductId).Average(s => (double?)s.Rating) ?? 0;
+                var amountReview = _context.ProductReviews.Where(s => s.ProductId == product.ProductId && s.ParentId == null).Count();
                 var baseUrl = GetBaseUrl();
                 var today = DateOnly.FromDateTime(System.DateTime.Now);
                 var now = TimeOnly.FromDateTime(System.DateTime.Now);
@@ -140,6 +142,8 @@ namespace ElectronicStore.Api.Controllers
                     product.Category.CategoryName,
                     product.IsActive,
                     product.ManufactureYear,
+                    averageRating,
+                    amountReview,
                     SoldQuantity = _context.OrderDetails.Where(od => od.ProductId == product.ProductId).Sum(od => (int?)od.Quantity) ?? 0,
                     ProductReview = await GetReviewByProductId(id),
                     MainImage = product.ProductImages.FirstOrDefault(i => i.ImageMain) is ProductImage m ? $"{baseUrl}{_config["ImageSettings:ProductPath"]}{m.UrlProductImage}" : null,
@@ -417,6 +421,7 @@ namespace ElectronicStore.Api.Controllers
             var resultList = new List<object>();
             foreach (var p in products)
             {
+                var averageRating = _context.ProductReviews.Where(s => s.ProductId == p.ProductId).Average(s => (double?)s.Rating) ?? 0;
                 var reviews = await GetReviewByProductId(p.ProductId);
                 var today = DateOnly.FromDateTime(System.DateTime.Now);
                 var now = TimeOnly.FromDateTime(System.DateTime.Now);
@@ -463,6 +468,7 @@ namespace ElectronicStore.Api.Controllers
                     p.Category.CategoryId,
                     p.Category.CategoryName,
                     p.ManufactureYear,
+                    averageRating,
                     SoldQuantity = _context.OrderDetails
                         .Where(od => od.ProductId == p.ProductId)
                         .Sum(od => (int?)od.Quantity) ?? 0,
