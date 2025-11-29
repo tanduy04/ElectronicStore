@@ -186,6 +186,8 @@ NHIỆM VỤ: Phân tích câu hỏi của người dùng và TRẢ VỀ CHỈ M
   ""keywords"": [/* các từ khóa tìm kiếm */],
   ""minPrice"": /* số hoặc null */,
   ""maxPrice"": /* số hoặc null */,
+  ""Cheapest"": true/false,
+  ""MostExpensive"": true/false,
   ""categoryIds"": [/* mảng ID danh mục */],
   ""brandIds"": [/* mảng ID thương hiệu */],
   ""limit"": /* số lượng sản phẩm tối đa 1-10 */,
@@ -293,7 +295,14 @@ HƯỚNG DẪN:
                     q = q.Where(p => filter.CategoryIds.Contains(p.CategoryId));
                 if (filter.BrandIds?.Any() == true)
                     q = q.Where(p => filter.BrandIds.Contains(p.BrandId));
-
+                if (filter.Cheapest)
+                {
+                    q = q.OrderBy(p => p.SellPrice);
+                }
+                else if (filter.MostExpensive)
+                {
+                    q = q.OrderByDescending(p => p.SellPrice);
+                }
                 if (filter.Keywords?.Any() == true)
                 {
                     foreach (var kw in filter.Keywords)
@@ -303,7 +312,8 @@ HƯỚNG DẪN:
                         q = q.Where(p => EF.Functions.Like(p.ProductName, $"%{k}%"));
                     }
                 }
-
+                if (filter.Cheapest == true || filter.MostExpensive == true)
+                    limit = 1;
                 var rows = await q.Select(p => new
                 {
                     p.ProductId,
@@ -395,6 +405,8 @@ YÊU CẦU: Chỉ trả VĂN BẢN (text), KHÔNG trả JSON.";
         public List<string>? Keywords { get; set; }
         public decimal? MinPrice { get; set; }
         public decimal? MaxPrice { get; set; }
+        public bool Cheapest { get; set; }
+        public bool MostExpensive { get; set; }
         public List<int>? CategoryIds { get; set; }
         public List<int>? BrandIds { get; set; }
         public int? Limit { get; set; }
