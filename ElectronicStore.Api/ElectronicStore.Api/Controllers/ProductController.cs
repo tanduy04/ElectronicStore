@@ -95,7 +95,7 @@ namespace ElectronicStore.Api.Controllers
 
                 var product = await _context.Products.Include(p => p.ProductImages).Include(p => p.Brand).Include(p => p.Category).FirstOrDefaultAsync(p => p.ProductId == id);
                 if (product == null) return NotFound("Product not found.");
-                var averageRating = _context.ProductReviews.Where(s => s.ProductId == product.ProductId).Average(s => (double?)s.Rating) ?? 0;
+                var averageRating = _context.ProductReviews.Where(s => s.ProductId == product.ProductId && s.IsActive == true).Average(s => (double?)s.Rating) ?? 0;
                 var amountReview = _context.ProductReviews.Where(s => s.ProductId == product.ProductId && s.ParentId == null).Count();
                 var baseUrl = GetBaseUrl();
                 var today = DateOnly.FromDateTime(System.DateTime.Now);
@@ -374,6 +374,8 @@ namespace ElectronicStore.Api.Controllers
                         Rating = r.Rating,
                         ParentId = r.ParentId,
                         Content = r.Content,
+                        IsActive = r.IsActive,
+                        CreatedAt = r.CreatedAt
                     })
                     .ToListAsync();
             if (reviews == null || reviews.Count == 0)
@@ -421,7 +423,7 @@ namespace ElectronicStore.Api.Controllers
             var resultList = new List<object>();
             foreach (var p in products)
             {
-                var averageRating = _context.ProductReviews.Where(s => s.ProductId == p.ProductId).Average(s => (double?)s.Rating) ?? 0;
+                var averageRating = _context.ProductReviews.Where(s => s.ProductId == p.ProductId && s.IsActive == true).Average(s => (double?)s.Rating) ?? 0;
                 var reviews = await GetReviewByProductId(p.ProductId);
                 var today = DateOnly.FromDateTime(System.DateTime.Now);
                 var now = TimeOnly.FromDateTime(System.DateTime.Now);
