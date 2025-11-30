@@ -141,7 +141,9 @@ namespace ElectronicStore.Api.Controllers
 
                 if (cartItem == null)
                     return NotFound(new { Message = "Product not found in your cart." });
-
+                var product = await _context.Products.FirstOrDefaultAsync(p => p.ProductId == dto.ProductId);
+                if (product.StockQuantity < dto.Quantity)
+                    return BadRequest(new { Message = "Insufficient inventory." });
                 cartItem.Quantity = dto.Quantity;
                 await _context.SaveChangesAsync();
                 return Ok(new { Message = "Product quantity updated successfully." });
