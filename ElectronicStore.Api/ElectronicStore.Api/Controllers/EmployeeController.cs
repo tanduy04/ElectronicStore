@@ -29,11 +29,11 @@ namespace ElectronicStore.Api.Controllers
             return Path.Combine(_env.WebRootPath ?? "wwwroot", relative);
         }
 
-        private string GetBaseUrl() => $"{Request.Scheme}://{Request.Host}/";
+        private string GetBaseUrl() => _config["AppSettings:BaseUrl"];
 
         private object MapEmployeeToDto(Employee c)
         {
-            var baseUrl = $"{Request.Scheme}://{Request.Host}/";
+            var baseUrl = GetBaseUrl();
             return new
             {
                 c.EmployeeId,
@@ -87,7 +87,7 @@ namespace ElectronicStore.Api.Controllers
         {
             try
             {
-                var baseUrl = $"{Request.Scheme}://{Request.Host}/";
+                var baseUrl = GetBaseUrl();
                 var employee = await _context.Employees
                 .Include(c => c.Account)
                 .Where(c => c.EmployeeId == id)

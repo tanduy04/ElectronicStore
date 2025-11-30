@@ -27,7 +27,7 @@ namespace ElectronicStore.Api.Controllers
             _config = config;
             _context = context;
         }
-        private string GetBaseUrl() => $"{Request.Scheme}://{Request.Host}/";
+        private string GetBaseUrl() => _config["AppSettings:BaseUrl"];
 
         //=================== ADMIN & EMPLOYEE ===================
 

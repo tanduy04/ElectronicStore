@@ -26,7 +26,7 @@ public class CategoriesController : ControllerBase
         try
         {
             var categories = _context.Categories.ToList();
-            var baseUrl = $"{Request.Scheme}://{Request.Host}/";
+            var baseUrl = _config["AppSettings:BaseUrl"];
 
             var result = categories.Select(c => new
             {
@@ -52,7 +52,7 @@ public class CategoriesController : ControllerBase
             var category = _context.Categories.Find(id);
             if (category == null) return NotFound();
 
-            var baseUrl = $"{Request.Scheme}://{Request.Host}/";
+            var baseUrl = _config["AppSettings:BaseUrl"];
 
             return Ok(new
             {
@@ -77,7 +77,7 @@ public class CategoriesController : ControllerBase
                 return BadRequest("Search term is required.");
             }
 
-            var baseUrl = $"{Request.Scheme}://{Request.Host}/";
+            var baseUrl = _config["AppSettings:BaseUrl"];
 
             var brands = _context.Categories
                 .Where(b => b.CategoryName.Contains(name)) // Tìm theo tên

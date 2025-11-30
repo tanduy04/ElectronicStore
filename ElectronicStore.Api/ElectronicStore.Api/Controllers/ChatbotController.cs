@@ -36,7 +36,7 @@ namespace ElectronicStore.Api.Controllers
         {
             return Path.Combine(_env.WebRootPath ?? string.Empty, _config["ImageSettings:ProductPath"] ?? string.Empty);
         }
-        private string GetBaseUrl() => $"{Request.Scheme}://{Request.Host}/";
+        private string GetBaseUrl() => _config["AppSettings:BaseUrl"];
         // ==========================================================
         // ***** PHƯƠNG THỨC MỚI: TẢI LỊCH SỬ CHAT (GET) *****
         // ==========================================================

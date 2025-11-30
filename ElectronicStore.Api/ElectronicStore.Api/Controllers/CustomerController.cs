@@ -39,7 +39,7 @@ namespace ElectronicStore.Api.Controllers
             {
                 try
                 {
-                    var baseUrl = $"{Request.Scheme}://{Request.Host}/";
+                    var baseUrl = _config["AppSettings:BaseUrl"];
                     return new
                     {
                         c.CustomerId,
@@ -101,7 +101,7 @@ namespace ElectronicStore.Api.Controllers
             {
                 try
                 {
-                    var baseUrl = $"{Request.Scheme}://{Request.Host}/";
+                    var baseUrl = _config["AppSettings:BaseUrl"];
 
                     // Lấy thông tin customer kèm account (nếu có)
                     var customer = await _context.Customers
