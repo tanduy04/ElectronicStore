@@ -16,7 +16,7 @@ jobs:
         password: ${{ secrets.PASSWORD }}
         port: 22
         script: |
-          cd /home/tanduy04/source_api/ElectronicStore
+          cd source_api/ElectronicStore
           git fetch origin
           git checkout production
           git pull
