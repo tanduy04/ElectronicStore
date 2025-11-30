@@ -243,9 +243,11 @@ namespace ElectronicStore.Api.Controllers
                 {
                     var employee = await _db.Employees
                     .Include(c => c.Account)
+                    .ThenInclude(c => c.Role)
                     .Where(c => c.AccountId == accountID)
                     .Select(c => new
                     {
+                        c.Account.Role.RoleName,
                         c.EmployeeId,
                         c.FullName,
                         c.Address,
