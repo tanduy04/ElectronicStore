@@ -21,7 +21,7 @@ namespace ElectronicStore.Api.Controllers
             _context = context;
             _config = config;
         }
-        private string GetBaseUrl() => $"{Request.Scheme}://{Request.Host}/";
+        private string GetBaseUrl() => _config["AppSettings:BaseUrl"];
         [HttpGet("get-all")]
         public async Task<IActionResult> GetAll()
         {

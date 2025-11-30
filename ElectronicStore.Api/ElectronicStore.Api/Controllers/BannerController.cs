@@ -51,7 +51,7 @@ namespace ElectronicStore.Api.Controllers
         {
             try
             {
-                var baseUrl = $"{Request.Scheme}://{Request.Host}/";
+                var baseUrl = _config["AppSettings:BaseUrl"];
                 var banners = await _context.Banners
                     .Select(b => new
                     {
@@ -74,7 +74,7 @@ namespace ElectronicStore.Api.Controllers
         {
             try
             {
-                var baseUrl = $"{Request.Scheme}://{Request.Host}/";
+                var baseUrl = _config["AppSettings:BaseUrl"];
                 var banner = await _context.Banners
                     .Where(b => b.BannerId == id)
                     .Select(b => new

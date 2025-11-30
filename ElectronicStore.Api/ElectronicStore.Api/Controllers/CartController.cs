@@ -20,7 +20,7 @@ namespace ElectronicStore.Api.Controllers
             _context = context;
             _config = config;
         }
-        private string GetBaseUrl() => $"{Request.Scheme}://{Request.Host}/";
+        private string GetBaseUrl() => _config["AppSettings:BaseUrl"];
         // Get AccountId from token
         private int GetAccountId()
         {

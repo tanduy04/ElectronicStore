@@ -28,7 +28,7 @@ namespace ElectronicStore.Api.Controllers
             return Path.Combine(_env.WebRootPath, _config["ImageSettings:ProductPath"]);
         }
 
-        private string GetBaseUrl() => $"{Request.Scheme}://{Request.Host}/";
+        private string GetBaseUrl() => _config["AppSettings:BaseUrl"];
 
         // GET: api/products/GetAll
         [HttpGet("GetAll")]

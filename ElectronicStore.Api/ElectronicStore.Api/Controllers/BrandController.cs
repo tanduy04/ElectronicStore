@@ -28,7 +28,7 @@ namespace ElectronicStore.Api.Controllers
             try
             {
                 var brands = _context.Brands.ToList();
-                var baseUrl = $"{Request.Scheme}://{Request.Host}/";
+                var baseUrl = _config["AppSettings:BaseUrl"];
 
                 var result = brands.Select(b => new
                 {
@@ -55,7 +55,7 @@ namespace ElectronicStore.Api.Controllers
                 var brand = _context.Brands.Find(id);
                 if (brand == null) return NotFound("Brand not found.");
 
-                var baseUrl = $"{Request.Scheme}://{Request.Host}/";
+                var baseUrl = _config["AppSettings:BaseUrl"];
 
                 return Ok(new
                 {
@@ -75,7 +75,7 @@ namespace ElectronicStore.Api.Controllers
         {
             try
             {
-                var baseUrl = $"{Request.Scheme}://{Request.Host}/";
+                var baseUrl = _config["AppSettings:BaseUrl"];
                 object brand = null;
                 if (id != 0)
                 {
@@ -124,7 +124,7 @@ namespace ElectronicStore.Api.Controllers
                     return BadRequest("Search term is required.");
                 }
 
-                var baseUrl = $"{Request.Scheme}://{Request.Host}/";
+                var baseUrl = _config["AppSettings:BaseUrl"];
 
                 var brands = _context.Brands
                     .Where(b => b.BrandName.Contains(name)) // Tìm theo tên
