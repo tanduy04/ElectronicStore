@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ElectronicStore.Api.Controllers
 {
+    [Authorize(Roles = "Customer")]
     [ApiController]
     [Route("[controller]")]
     public class WeatherForecastController : ControllerBase
