@@ -39,7 +39,7 @@ namespace ElectronicStore.Api.Dto
     public class ProductReviewDto
     {
         public int ReviewId { get; set; }
-        public int ProductId { get; set; }
+        public string ProductName { get; set; }
         public string FullName { get; set; }
         public string Phone { get; set; }
 
