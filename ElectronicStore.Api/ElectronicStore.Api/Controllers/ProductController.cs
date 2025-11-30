@@ -364,11 +364,12 @@ namespace ElectronicStore.Api.Controllers
         {
             var reviews = await _context.ProductReviews
                     .Where(r => r.ProductId == id && r.ParentId == null && r.IsActive == true)
+                    .Include(r => r.Product)
                     .OrderByDescending(r => r.CreatedAt)
                     .Select(r => new ProductReviewDto
                     {
                         ReviewId = r.ReviewId,
-                        ProductId = r.ProductId,
+                        ProductName = r.Product.ProductName,
                         FullName = r.FullName,
                         Phone = r.Phone,
                         Rating = r.Rating,
