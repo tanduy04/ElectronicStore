@@ -376,9 +376,7 @@ namespace ElectronicStore.Api.Controllers
 
                 var config = _config.GetSection("VNPay");
 
-                string vnp_Returnurl = !string.IsNullOrEmpty(dto.ReturnUrl)
-                    ? dto.ReturnUrl
-                    : config["ReturnUrl"]; // Callback
+                string vnp_Returnurl = config["ReturnUrl"];
                 string vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
                 string vnp_TmnCode = config["TmnCode"]; // mã merchant
                 string vnp_HashSecret = config["HashSecret"]; // secret key
