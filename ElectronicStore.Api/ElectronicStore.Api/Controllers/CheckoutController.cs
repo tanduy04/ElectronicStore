@@ -674,9 +674,7 @@ namespace ElectronicStore.Api.Controllers
 
                     var config = _config.GetSection("VNPay");
 
-                    string vnp_Returnurl = !string.IsNullOrEmpty(dto.ReturnUrl)
-                    ? dto.ReturnUrl
-                    : config["ReturnUrl"];// Callback
+                    string vnp_Returnurl =config["ReturnUrl"];// Callback
                     Console.WriteLine($"[VNPay] ReturnUrl from DTO: {dto.ReturnUrl ?? "NULL"}");
                     Console.WriteLine($"[VNPay] Final ReturnUrl used: {vnp_Returnurl}");
                     string vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
