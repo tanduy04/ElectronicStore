@@ -218,6 +218,7 @@ namespace ElectronicStore.Api.Controllers
                     .Where(c => c.AccountId == accountID)
                     .Select(c => new
                     {
+                        c.Account.Role.RoleName,
                         c.CustomerId,
                         c.FullName,
                         c.Address,
