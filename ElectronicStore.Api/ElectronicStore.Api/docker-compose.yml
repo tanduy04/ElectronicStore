@@ -34,6 +34,7 @@ services:
       ConnectionStrings__DefaultConnection: "Server=sqlserver;Database=ElectronicStore;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=true"
     volumes:
       - ./wwwroot:/app/wwwroot
+      - /var/run/docker.sock:/var/run/docker.sock 
 
   sqlserver-init:
     image: mcr.microsoft.com/mssql-tools
