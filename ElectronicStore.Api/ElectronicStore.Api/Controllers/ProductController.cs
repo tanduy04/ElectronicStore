@@ -527,5 +527,21 @@ namespace ElectronicStore.Api.Controllers
 
             return dict.Any() ? JsonSerializer.Serialize(dict) : null;
         }
+        [HttpGet("getStockQuantity/{id}")]
+        public IActionResult GetStockQuantity(int id)
+        {
+            var product = _context.Products.FirstOrDefault(p => p.ProductId == id);
+            if (product == null)
+            {
+                return NotFound("Product not found.");
+            }
+            else
+            {
+                return Ok(new
+                {
+                    product.StockQuantity
+                });
+            }
+        }
     }
 }
