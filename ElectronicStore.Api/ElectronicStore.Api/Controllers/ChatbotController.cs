@@ -8,15 +8,15 @@ namespace ElectronicStore.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class ChatController : ControllerBase
+    public class ChatbotController : ControllerBase
     {
         private readonly ElectronicStoreContext _dbContext;
         private readonly HybridRagChatbotService _chatbotService;
-        private readonly ILogger<ChatController> _logger;
+        private readonly ILogger<ChatbotController> _logger;
 
-        public ChatController(
+        public ChatbotController(
             HybridRagChatbotService chatbotService,
-            ILogger<ChatController> logger,
+            ILogger<ChatbotController> logger,
             ElectronicStoreContext dbContext) // THÊM
         {
             _chatbotService = chatbotService;
