@@ -14,7 +14,7 @@ namespace ElectronicStore.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class ChatbotController : ControllerBase
+    public class ChatbotBaseController : ControllerBase
     {
         private const string ChatHistoryKey = "ChatHistory"; // Khóa Session
 
@@ -24,7 +24,7 @@ namespace ElectronicStore.Api.Controllers
         private readonly IWebHostEnvironment _env;
         private readonly IConfiguration _config;
 
-        public ChatbotController(IHttpClientFactory httpClientFactory, GeminiConfig GeminiConfig, IWebHostEnvironment env, IConfiguration config, ElectronicStoreContext context)
+        public ChatbotBaseController(IHttpClientFactory httpClientFactory, GeminiConfig GeminiConfig, IWebHostEnvironment env, IConfiguration config, ElectronicStoreContext context)
         {
             _httpClientFactory = httpClientFactory;
             _Geminiconfig = GeminiConfig;
@@ -40,7 +40,7 @@ namespace ElectronicStore.Api.Controllers
         // ==========================================================
         // ***** PHƯƠNG THỨC MỚI: TẢI LỊCH SỬ CHAT (GET) *****
         // ==========================================================
-        [HttpGet("history")]
+        [HttpGet("historyy")]
         public ActionResult<List<object>> GetChatHistory()
         {
             // Tải lịch sử chat từ Session
@@ -118,7 +118,7 @@ namespace ElectronicStore.Api.Controllers
         // ***** PHƯƠNG THỨC GỬI TIN NHẮN (POST) - 2-step Gemini calls *****
         // ==========================================================
         [HttpPost("send")]
-        public async Task<IActionResult> SendMessage([FromBody] ChatRequest req)
+        public async Task<IActionResult> SendMessage([FromBody] ChatRequest1 req)
         {
             var baseUrl = GetBaseUrl();
             // 1. TẢI LỊCH SỬ CHAT TỪ SESSION
@@ -210,7 +210,7 @@ HƯỚNG DẪN:
             // -------------------------------------------------------------------
 
             var client = _httpClientFactory.CreateClient("Gemini");
-            var url = $"models/gemini-2.5-flash:generateContent?key={_Geminiconfig.ApiKey}";
+            var url = $"models/gemini-2.5-flash-lite:generateContent?key={_Geminiconfig.ApiKey}";
             var body = new
             {
                 contents = new[]
@@ -413,7 +413,7 @@ YÊU CẦU: Chỉ trả VĂN BẢN (text), KHÔNG trả JSON.";
         public string? Message { get; set; }
     }
 
-    public class ChatRequest
+    public class ChatRequest1
     {
         public string Message { get; set; } = "";
     }

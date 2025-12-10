@@ -1,4 +1,5 @@
-﻿using ElectronicStore.Api.Data;
+﻿using ElectronicStore.Api.Services;
+using ElectronicStore.Api.Data;
 using ElectronicStore.Api.Service;
 using ElectronicStore.Api.Service.MailService;
 using Google.Apis.Http;
@@ -116,7 +117,11 @@ builder.Services.AddTransient<EmailService>();
 //ttest Chatbot
 
 
-
+builder.Services.AddSingleton<GeminiService>();
+builder.Services.AddSingleton<QdrantService>();
+builder.Services.AddSingleton<QADataService>();
+builder.Services.AddScoped<RagChatbotService>();
+builder.Services.AddScoped<HybridRagChatbotService>();
 
 
 //Testchatbot
@@ -160,7 +165,20 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
-
+using (var scope = app.Services.CreateScope())
+{
+    var qdrantService = scope.ServiceProvider.GetRequiredService<QdrantService>();
+    try
+    {
+        await qdrantService.InitializeCollectionAsync();
+        Console.WriteLine("? Qdrant collection initialized successfully");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"?? Warning: Could not initialize Qdrant collection: {ex.Message}");
+        Console.WriteLine("Make sure Qdrant is running on Docker");
+    }
+}
 app.Run();
 public class GeminiConfig
 {
