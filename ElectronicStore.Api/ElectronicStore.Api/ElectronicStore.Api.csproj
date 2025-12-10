@@ -40,5 +40,10 @@
     <Folder Include="wwwroot\Image\AvatarAccount\" />
     <Folder Include="wwwroot\Image\Product\" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="Data\da.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 
 </Project>
