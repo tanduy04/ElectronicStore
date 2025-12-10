@@ -6,6 +6,7 @@ COPY ["ElectronicStore.Api.csproj", "."]
 RUN dotnet restore "ElectronicStore.Api.csproj"
 
 COPY . .
+COPY Data ./Data
 RUN dotnet publish "ElectronicStore.Api.csproj" -c Release -o /app/publish
 
 # ---------------------------
