@@ -1,0 +1,126 @@
+﻿Q: Làm thế nào để đặt lại mật khẩu?
+A: Để đặt lại mật khẩu, bạn vào trang đăng nhập, nhấp vào "Quên mật khẩu", nhập email của bạn và làm theo hướng dẫn trong email được gửi đến.
+
+Q: Thời gian giao hàng là bao lâu?
+A: Thời gian giao hàng tiêu chuẩn là 3-5 ngày làm việc đối với đơn hàng nội thành, và 7-10 ngày đối với đơn hàng ngoại thành.
+
+Q: Tôi có thể trả lại sản phẩm không?
+A: Có, bạn có thể trả lại sản phẩm trong vòng 30 ngày kể từ ngày mua. Sản phẩm phải còn nguyên tem, chưa qua sử dụng và có hóa đơn mua hàng.
+
+Q: Làm thế nào để theo dõi đơn hàng?
+A: Sau khi đặt hàng, bạn sẽ nhận được mã tracking qua email. Sử dụng mã này trên trang web của chúng tôi để theo dõi tình trạng đơn hàng.
+
+Q: Các phương thức thanh toán được chấp nhận là gì?
+A: Chúng tôi chấp nhận thanh toán qua thẻ tín dụng (Visa, Mastercard), chuyển khoản ngân hàng, ví điện tử (Momo, ZaloPay) và thanh toán khi nhận hàng (COD).
+
+Q: Làm thế nào để liên hệ hỗ trợ khách hàng?
+A: Bạn có thể liên hệ qua hotline 1900-xxxx, email support@example.com hoặc chat trực tuyến trên website từ 8h-22h hàng ngày.
+
+Q: Sản phẩm có bảo hành không?
+A: Có, tất cả sản phẩm đều được bảo hành 12 tháng đối với lỗi nhà sản xuất. Bảo hành không áp dụng cho hư hỏng do người dùng.
+
+Q: Làm thế nào để cập nhật thông tin tài khoản?
+A: Đăng nhập vào tài khoản, vào mục "Thông tin cá nhân", chỉnh sửa các thông tin cần thiết và nhấn "Lưu thay đổi".
+
+Q: Tôi có thể hủy đơn hàng sau khi đặt không?
+A: Có, bạn có thể hủy đơn hàng trong vòng 2 giờ sau khi đặt thành công. Sau thời gian này, đơn hàng có thể đã được chuyển sang kho để chuẩn bị gửi và không thể hủy.
+
+Q: Sản phẩm có hỗ trợ giao lắp đặt tại nhà không?
+A: Có, các sản phẩm như tivi, máy giặt, máy lạnh, tủ lạnh… đều hỗ trợ giao và lắp đặt tận nơi. Phí lắp đặt sẽ tùy theo khu vực và loại sản phẩm.
+
+Q: Máy lạnh mua có bao gồm ống đồng chưa?
+A: Giá sản phẩm thường không bao gồm ống đồng. Kỹ thuật viên sẽ báo giá phần vật tư phát sinh khi lắp đặt.
+
+Q: Tôi có thể yêu cầu xuất hóa đơn đỏ (VAT) cho đơn hàng không?
+A: Có, bạn chỉ cần cung cấp thông tin công ty trong lúc thanh toán hoặc liên hệ bộ phận hỗ trợ sau khi đặt hàng.
+
+Q: Nếu sản phẩm bị lỗi thì tôi được đổi trả như thế nào?
+A: Nếu sản phẩm bị lỗi do nhà sản xuất trong vòng 7 ngày đầu, bạn sẽ được đổi mới 100%. Sau 7 ngày sẽ chuyển sang chế độ bảo hành của hãng.
+
+Q: Các sản phẩm điện máy có chương trình trả góp không?
+A: Có, chúng tôi hỗ trợ trả góp qua thẻ tín dụng của nhiều ngân hàng và trả góp qua công ty tài chính với giấy tờ đơn giản.
+
+Q: Tôi muốn kiểm tra hàng trước khi thanh toán có được không?
+A: Có, bạn có quyền kiểm tra ngoại quan sản phẩm trước khi thanh toán. Tuy nhiên không được mở seal hoặc kích hoạt sản phẩm.
+
+Q: Nếu tôi mua nhiều sản phẩm thì có được giảm giá thêm không?
+A: Với đơn hàng số lượng lớn hoặc dành cho doanh nghiệp, bạn có thể liên hệ hotline để được báo giá ưu đãi.
+
+Q: Bảo hành sản phẩm được thực hiện ở đâu?
+A: Bảo hành được thực hiện trực tiếp tại các trung tâm bảo hành ủy quyền của hãng trên toàn quốc.
+
+Q: Có hỗ trợ giao hàng vào cuối tuần không?
+A: Có, chúng tôi giao hàng tất cả các ngày trong tuần, bao gồm cả Thứ 7 và Chủ nhật.
+
+Q: Tôi có thể yêu cầu giao hàng hẹn giờ không?
+A: Có, bạn có thể chọn khung giờ giao hàng khi đặt hoặc trao đổi với nhân viên giao hàng qua điện thoại.
+
+Q: Sản phẩm có đi kèm phụ kiện không?
+A: Mỗi sản phẩm sẽ có bộ phụ kiện tiêu chuẩn riêng theo hãng. Bạn có thể xem chi tiết trong mô tả sản phẩm hoặc hỏi nhân viên hỗ trợ.
+
+Q: Làm sao để biết sản phẩm còn hàng hay không?
+A: Trên trang sản phẩm sẽ hiển thị trạng thái “Còn hàng” hoặc “Hết hàng”. Bạn cũng có thể liên hệ hotline để được kiểm tra tồn kho nhanh nhất.
+
+Q: Sau khi nhận hàng, tôi muốn đổi sang mẫu khác được không?
+A: Được đổi trong vòng 7 ngày nếu sản phẩm chưa kích hoạt, còn nguyên seal và chưa sử dụng. Chênh lệch giá sẽ được tính thêm hoặc hoàn lại.
+
+Q: Tôi đặt nhầm màu sản phẩm thì có đổi được không?
+A: Nếu sản phẩm chưa được giao hoặc còn nguyên seal, bạn có thể đổi sang màu khác tùy theo tồn kho.
+
+Q: Khi mua tivi, tôi có được hỗ trợ treo tường không?
+A: Có, chúng tôi cung cấp dịch vụ treo tường tivi. Giá công lắp đặt và giá giá treo phụ thuộc vào kích thước tivi và loại giá bạn chọn.
+
+Q: Tôi có thể kiểm tra tình trạng bảo hành của sản phẩm như thế nào?
+A: Bạn có thể kiểm tra bằng cách nhập mã seri trên website của hãng hoặc gọi đến tổng đài bảo hành của hãng để được hỗ trợ.
+
+Q: Có phải đăng ký bảo hành điện tử cho sản phẩm không?
+A: Một số sản phẩm cần đăng ký bảo hành điện tử. Bạn có thể tự đăng ký hoặc nhờ kỹ thuật viên hỗ trợ khi lắp đặt.
+
+Q: Khi nhận hàng, tôi phát hiện thiếu phụ kiện thì phải làm gì?
+A: Bạn hãy liên hệ ngay hotline trong vòng 24 giờ kể từ lúc nhận hàng để chúng tôi kiểm tra và bổ sung phụ kiện thiếu.
+
+Q: Sản phẩm trưng bày có được bảo hành không?
+A: Có, sản phẩm trưng bày vẫn được bảo hành theo chính sách của hãng. Một số mẫu có thể có mức giá thấp hơn.
+
+Q: Có hỗ trợ mang sản phẩm đến trung tâm bảo hành giúp tôi không?
+A: Với các thiết bị cỡ lớn như tivi, tủ lạnh, máy giặt… hãng sẽ hỗ trợ bảo hành tại nhà. Sản phẩm nhỏ thì bạn cần mang đến trung tâm bảo hành gần nhất.
+
+Q: Tôi muốn nhận hóa đơn điện tử thì bao lâu sẽ nhận được?
+A: Hóa đơn điện tử sẽ được gửi về email của bạn trong vòng 24–48 giờ sau khi đơn hàng được giao thành công.
+
+Q: Tôi ở tỉnh thì có giao hàng và lắp đặt không?
+A: Có, chúng tôi hỗ trợ giao hàng toàn quốc. Một số khu vực tỉnh sẽ được lắp đặt bởi kỹ thuật viên hãng.
+
+Q: Khi trả góp, tôi cần chuẩn bị giấy tờ gì?
+A: Nếu trả góp qua công ty tài chính, bạn cần CMND/CCCD và bằng lái xe hoặc sổ hộ khẩu. Trả góp qua thẻ tín dụng thì không cần giấy tờ.
+
+Q: Tôi có thể thanh toán trước một phần khi trả góp không?
+A: Có, bạn có thể thanh toán trước 20–70% giá trị sản phẩm tùy theo gói trả góp.
+
+Q: Sản phẩm có hỗ trợ đổi địa chỉ giao hàng sau khi đặt không?
+A: Bạn có thể thay đổi địa chỉ trước khi hàng được chuyển sang bộ phận giao vận. Sau đó thay đổi sẽ không thực hiện được.
+
+Q: Khi thanh toán online bị lỗi nhưng tiền đã trừ thì sao?
+A: Nếu hệ thống không ghi nhận đơn hàng, tiền sẽ được ngân hàng hoàn lại cho bạn trong 24–72 giờ làm việc.
+
+Q: Tôi muốn mua số lượng lớn cho công ty thì liên hệ ai?
+A: Bạn có thể liên hệ bộ phận kinh doanh qua email doanhnghiep@example.com
+ để được báo giá sỉ và hợp đồng.
+
+Q: Có sản phẩm nào được miễn phí giao hàng không?
+A: Một số sản phẩm áp dụng miễn phí giao hàng nội thành. Thông tin sẽ được ghi rõ trên trang sản phẩm.
+
+Q: Tôi có thể xem hàng trực tiếp tại cửa hàng không?
+A: Có, bạn có thể đến showroom để trải nghiệm sản phẩm trước khi đặt mua.
+
+Q: Khi mua tủ lạnh thì có hỗ trợ đổi chiều cửa không?
+A: Một số mẫu tủ lạnh hỗ trợ đổi chiều cửa. Việc đổi sẽ do kỹ thuật viên của hãng thực hiện.
+
+Q: Tôi muốn mua máy lạnh nhưng chưa có vị trí lắp đặt rõ ràng, kỹ thuật viên có khảo sát trước không?
+A: Có, bạn có thể yêu cầu khảo sát tại nhà miễn phí trước khi quyết định mua máy lạnh.
+
+Q: Khi thanh toán bằng COD, tôi có được mở hộp kiểm tra không?
+A: Bạn được kiểm tra ngoại quan sản phẩm nhưng không được kích hoạt hoặc sử dụng thử.
+
+Q: Khi sản phẩm hết hàng, tôi có thể đăng ký nhận thông báo không?
+A: Có, bạn có thể để lại email/số điện thoại tại trang sản phẩm để nhận thông báo khi hàng về lại.
