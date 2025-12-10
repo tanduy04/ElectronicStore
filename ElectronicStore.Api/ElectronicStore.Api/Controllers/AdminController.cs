@@ -30,7 +30,7 @@ namespace ElectronicStore.Api.Controllers
         {
             try
             {
-                var filePath = _configuration["QAFilePath"] ?? "Data/qa.txt";
+                var filePath = _configuration["QAFilePath"] ?? "wwwroot/qa.txt";
 
                 _logger.LogInformation("Starting indexing from file: {FilePath}", filePath);
 

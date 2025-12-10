@@ -9,10 +9,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="Data\qa.txt" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="Docker.DotNet" Version="3.125.15" />
     <PackageReference Include="Google.Cloud.AIPlatform.V1" Version="3.50.0" />
@@ -43,5 +39,9 @@
     <Folder Include="wwwroot\Image\Category\" />
     <Folder Include="wwwroot\Image\AvatarAccount\" />
     <Folder Include="wwwroot\Image\Product\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="wwwroot\qa.txt" />
   </ItemGroup>
 </Project>
