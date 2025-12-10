@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -7,6 +7,10 @@
     <UserSecretsId>a6ed6c36-5bc5-4ffd-a244-d6ebbf422a01</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="Data\qa.txt" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
@@ -40,10 +44,4 @@
     <Folder Include="wwwroot\Image\AvatarAccount\" />
     <Folder Include="wwwroot\Image\Product\" />
   </ItemGroup>
-  <ItemGroup>
-    <Content Include="Data\da.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
 </Project>
