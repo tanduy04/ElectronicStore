@@ -406,6 +406,8 @@ namespace ElectronicStore.Api.Controllers
                 "name" => sortOrder == "asc" ? query.OrderBy(p => p.ProductName) : query.OrderByDescending(p => p.ProductName),
                 "price" => sortOrder == "asc" ? query.OrderBy(p => p.OriginalPrice) : query.OrderByDescending(p => p.OriginalPrice),
                 "createdat" => sortOrder == "asc" ? query.OrderBy(p => p.CreatedAt) : query.OrderByDescending(p => p.CreatedAt),
+                "stock" =>  query.OrderBy(p => p.StockQuantity),
+
                 _ => query.OrderByDescending(p => p.CreatedAt)
             };
 
