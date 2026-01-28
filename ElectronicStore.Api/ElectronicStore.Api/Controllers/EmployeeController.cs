@@ -26,159 +26,59 @@ namespace ElectronicStore.Api.Controllers
 
             return Ok(result.Data);
         }
-            }
-        }
 
         [HttpGet("{id}")]
         [Authorize(Roles = "Admin,Employee")]
         public async Task<IActionResult> GetById(int id)
         {
-            try
-            {
-                var baseUrl = GetBaseUrl();
-                var employee = await _context.Employees
-                .Include(c => c.Account)
-                .Where(c => c.EmployeeId == id)
-                .Select(c => new
-                {
-                    c.EmployeeId,
-                    c.FullName,
-                    c.Address,
-                    c.Position,
-                    c.Salary,
-                    c.HireDate,
-                    c.BirthDate,
-                    c.Phone,
-                    c.Account.Email,
-                    c.Account.IsActive,
-                    ImageUrl = $"{baseUrl}{_config["ImageSettings:AccountPath"]}{c.Account.Avatar}",
-                })
-                .FirstOrDefaultAsync();
+            var result = await _employeeService.GetEmployeeByIdAsync(id);
 
-                if (employee == null) return NotFound("Employee not found.");
-                return Ok(employee);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, "Internal server error: " + ex.Message);
-            }
+            if (!result.Success)
+                return NotFound(result.Message);
+
+            return Ok(result.Data);
         }
         [HttpGet("search")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> SearchByPhone(string phone)
         {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(phone))
-                    return BadRequest("Phone number is required.");
+            if (string.IsNullOrWhiteSpace(phone))
+                return BadRequest("Phone number is required.");
 
-                var employees = await _context.Employees
-                    .Include(c => c.Account)
-                    .Where(c => c.Phone.Contains(phone))
-                    .ToListAsync();
+            var result = await _employeeService.SearchEmployeesByPhoneAsync(phone);
 
-                if (!employees.Any()) return NotFound("No employees found with this phone number.");
+            if (!result.Success)
+                return NotFound(result.Message);
 
-                return Ok(employees.Select(MapEmployeeToDto));
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, "Internal server error: " + ex.Message);
-            }
+            return Ok(result.Data);
         }
 
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(int id, [FromForm] EmployeeDto dto)
         {
-            try
-            {
-                if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-                var employee = await _context.Employees.FindAsync(id);
-                if (employee == null) return NotFound("Employee not found.");
+            var result = await _employeeService.UpdateEmployeeAsync(id, dto);
 
-                var account = await _context.Accounts.FirstOrDefaultAsync(a => a.AccountId == employee.AccountId);
-                if (account == null) return NotFound("Account not found.");
+            if (!result.Success)
+                return result.Message.Contains("not found") ? NotFound(result.Message) : BadRequest(result.Message);
 
-                if (_context.Accounts.Any(a => a.Email == dto.Email && a.AccountId != account.AccountId))
-                    return BadRequest("Email already exists");
-                if (_context.Employees.Any(a => a.Phone == dto.PhoneNumber && a.EmployeeId != employee.EmployeeId))
-                    return BadRequest("Phone number already exists");
-                employee.FullName = dto.FullName;
-                employee.Address = dto.Address;
-                employee.Position = dto.Position;
-                employee.Salary = dto.Salary;
-                employee.HireDate = dto.HireDate;
-                employee.Phone = dto.PhoneNumber;
-                account.IsActive = dto.IsActive;
-                account.UpdatedAt = DateTime.Now;
-                account.Email = dto.Email;
-
-                _context.Accounts.Update(account);
-                _context.Employees.Update(employee);
-                await _context.SaveChangesAsync();
-
-                return Ok("Employee updated successfully.");
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, "Internal server error: " + ex.Message);
-            }
+            return Ok(result.Message);
         }
         [HttpPost]
         public async Task<IActionResult> CreateEmployee([FromBody] CreateEmployeeDto dto)
         {
-            try
-            {
-                if (!ModelState.IsValid) return BadRequest(ModelState);
-                if (_context.Accounts.Any(a => a.Email == dto.Email))
-                    return BadRequest("Email already exists");
-                if (_context.Employees.Any(a => a.Phone == dto.PhoneNumber))
-                    return BadRequest("Phone number already exists");
-                var role = await _context.Roles.FirstOrDefaultAsync(s => s.RoleName == "Employee");
-                if (role == null)
-                    return BadRequest("Role 'Employee' not found.");
-                int roleId = role.RoleId;
-                var account = new Account
-                {
-                    Username = dto.Username,
-                    Email = dto.Email,
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Username),
-                    RoleId = roleId,
-                    IsActive = true,
-                    Avatar = "default-avatar.jpg",
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
-                };
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-                _context.Accounts.Add(account);
-                await _context.SaveChangesAsync();
+            var result = await _employeeService.CreateEmployeeAsync(dto);
 
+            if (!result.Success)
+                return BadRequest(result.Message);
 
-                var employee = new Employee
-                {
-                    AccountId = account.AccountId,
-                    FullName = dto.FullName,
-                    BirthDate = dto.BirthDate,
-                    Address = dto.Address,
-                    Position = dto.Position,
-                    Phone = dto.PhoneNumber,
-                    Salary = dto.Salary,
-                    HireDate = dto.HireDate,
-                    CreatedAt = DateTime.Now
-                };
-
-                _context.Employees.Add(employee);
-                await _context.SaveChangesAsync();
-
-                return Ok(new { message = "Add new employee success", EmployeeID = employee.EmployeeId });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, "Internal server error: " + ex.Message);
-            }
-
+            return Ok(result.Data);
         }
         //[HttpGet]
         //[Route("CreateAdmin")]
@@ -233,67 +133,19 @@ namespace ElectronicStore.Api.Controllers
         [Authorize(Roles = "Employee,Admin")]
         public async Task<IActionResult> Update([FromForm] EmployeeProfileDto dto)
         {
-            try
-            {
-                if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
+            var accountId = User.FindFirst("AccountID")?.Value;
+            if (accountId == null)
+                return Unauthorized();
 
+            var result = await _employeeService.UpdateEmployeeProfileAsync(int.Parse(accountId), dto);
 
-                var account = await _context.Accounts.FirstOrDefaultAsync(a => a.AccountId == int.Parse(User.FindFirst("AccountID").Value));
-                if (account == null) return NotFound("Account not found.");
-                var employee = await _context.Employees.FindAsync(account.AccountId);
-                if (employee == null) return NotFound("Employee not found.");
+            if (!result.Success)
+                return result.Message.Contains("not found") ? NotFound(result.Message) : BadRequest(result.Message);
 
-
-
-                // Kiểm tra email và số điện thoại hợp lý hơn
-                if (_context.Accounts.Any(a => a.Email == dto.Email && a.AccountId != account.AccountId))
-                    return BadRequest("Email already exists");
-                if (_context.Employees.Any(a => a.Phone == dto.PhoneNumber && a.EmployeeId != employee.EmployeeId))
-                    return BadRequest("Phone number already exists");
-
-                employee.FullName = dto.FullName;
-                employee.Address = dto.Address;
-                employee.BirthDate = dto.BirthDate;
-                employee.Phone = dto.PhoneNumber;
-                account.Email = dto.Email;
-                if (dto.Avatar != null)
-                {
-                    if (!ImageHelper.IsImageFile(dto.Avatar))
-                        return BadRequest("Please upload a valid image file.");
-
-                    var folder = GetFolder();
-                    if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
-
-                    // Xóa avatar cũ
-                    if (!string.IsNullOrEmpty(account.Avatar) && account.Avatar != "default-avatar.jpg")
-                    {
-                        var oldPath = Path.Combine(folder, account.Avatar);
-                        ImageHelper.DeleteFileIfExists(oldPath, account.Avatar);
-                    }
-
-                    // Lưu avatar mới
-                    var ext = Path.GetExtension(dto.Avatar.FileName);
-                    var avatarFile = $"{Guid.NewGuid().ToString()}{ext}";
-                    var fullPath = Path.Combine(folder, avatarFile);
-
-                    using (var fs = new FileStream(fullPath, FileMode.Create))
-                    {
-                        await dto.Avatar.CopyToAsync(fs);
-                    }
-
-                    account.Avatar = avatarFile;
-                }
-
-                _context.Employees.Update(employee);
-                await _context.SaveChangesAsync();
-
-                return Ok("Employee updated successfully.");
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, "Internal server error: " + ex.Message);
-            }
+            return Ok(result.Message);
         }
 
     }

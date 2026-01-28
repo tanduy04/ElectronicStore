@@ -71,13 +71,12 @@ namespace ElectronicStore.Api.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var voucher = await _context.Vouchers.FindAsync(id);
-            if (voucher == null) return NotFound();
-            var isVoucherUsed = await _context.Orders.AnyAsync(o => o.VoucherCode == voucher.VoucherCode);
-            if(isVoucherUsed) return BadRequest("Cannot delete voucher that has been used in orders.");
-            _context.Vouchers.Remove(voucher);
-            await _context.SaveChangesAsync();
-            return Ok("Delete susscess");
+            var result = await _voucherService.DeleteVoucherAsync(id);
+            
+            if (!result.Success)
+                return result.Message.Contains("not found") ? NotFound(result.Message) : BadRequest(result.Message);
+
+            return Ok(result.Message);
         }
 
     }

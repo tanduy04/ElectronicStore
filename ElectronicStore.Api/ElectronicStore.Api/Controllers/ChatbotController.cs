@@ -1,7 +1,6 @@
-﻿using ElectronicStore.Api.Data;
-using ElectronicStore.Api.Models;
+﻿using ElectronicStore.Api.Models;
 using ElectronicStore.Api.Services;
-using Microsoft.AspNetCore.Http;
+using ElectronicStore.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ElectronicStore.Api.Controllers
@@ -10,33 +9,38 @@ namespace ElectronicStore.Api.Controllers
     [ApiController]
     public class ChatbotController : ControllerBase
     {
-        private readonly ElectronicStoreContext _dbContext;
         private readonly HybridRagChatbotService _chatbotService;
         private readonly ILogger<ChatbotController> _logger;
+        private readonly IBrandService _brandService;
+        private readonly ICategoryService _categoryService;
 
         public ChatbotController(
             HybridRagChatbotService chatbotService,
             ILogger<ChatbotController> logger,
-            ElectronicStoreContext dbContext) // THÊM
+            IBrandService brandService,
+            ICategoryService categoryService)
         {
             _chatbotService = chatbotService;
             _logger = logger;
-            _dbContext = dbContext; // THÊM
+            _brandService = brandService;
+            _categoryService = categoryService;
         }
 
         [HttpPost("send")]
         public async Task<ActionResult<HybridChatResponse>> AskQuestion([FromBody] ChatRequest request)
         {
-            // ... validation ...
+            // Get brands and categories from services
+            var brandsResult = await _brandService.GetAllBrandsAsync();
+            var categoriesResult = await _categoryService.GetAllCategoriesAsync();
 
-            // Lấy brands và categories từ DB THỰC
-            var brands =_dbContext.Brands
-    .Where(b => b.IsActive)
-    .ToList();
+            if (!brandsResult.Success || !categoriesResult.Success)
+            {
+                return BadRequest("Unable to fetch required data");
+            }
 
-            var categories =  _dbContext.Categories
-                .Where(c => c.IsActive)
-                .ToList();
+            // Cast the data appropriately
+            var brands = brandsResult.Data as dynamic;
+            var categories = categoriesResult.Data as dynamic;
 
             var response = await _chatbotService.ProcessQuestionAsync(
                 request.Message,

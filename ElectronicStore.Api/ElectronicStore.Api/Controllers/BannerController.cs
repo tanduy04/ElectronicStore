@@ -36,121 +36,48 @@ namespace ElectronicStore.Api.Controllers
                 return NotFound(result.Message);
 
             return Ok(result.Data);
-                    {
-                        b.BannerId,
-                        b.BannerName,
-                        ImageUrl = $"{baseUrl}{_config["ImageSettings:BannerPath"]}{b.ImageUrl}",
-                    })
-                    .FirstOrDefaultAsync();
-
-                if (banner == null)
-                    return NotFound("Banner not found.");
-
-                return Ok(banner);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, "Internal server error: " + ex.Message);
-            }
         }
 
         [HttpPost]
         [Authorize(Roles = "Admin,Employee")]
         public async Task<IActionResult> Create([FromForm] BannerDto dto)
         {
-            try
-            {
-                if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
-                if (dto.ImageFile == null || !ImageHelper.IsImageFile(dto.ImageFile))
-                    return BadRequest("Please upload a valid image file (jpg, jpeg, png, gif).");
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-                string folderPath = Path.Combine(_env.WebRootPath, _config["ImageSettings:BannerPath"]);
-                string fileName = await ImageHelper.SaveImageAsync(dto.ImageFile, folderPath, dto.BannerName);
-                var banner = new Banner
-                {
-                    BannerName = dto.BannerName,
-                    ImageUrl = fileName
-                };
+            var result = await _bannerService.CreateBannerAsync(dto);
 
-                _context.Banners.Add(banner);
-                await _context.SaveChangesAsync();
+            if (!result.Success)
+                return BadRequest(result.Message);
 
-                return Ok(banner);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, "Internal server error: " + ex.Message);
-            }
+            return Ok(result.Data);
         }
 
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin,Employee")]
         public async Task<IActionResult> Update(int id, [FromForm] BannerDto dto)
         {
-            try
-            {
-                var banner = await _context.Banners.FindAsync(id);
-                if (banner == null)
-                    return NotFound("Banner not found.");
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-                banner.BannerName = dto.BannerName;
+            var result = await _bannerService.UpdateBannerAsync(id, dto);
 
-                if (dto.ImageFile != null)
-                {
-                    if (!ImageHelper.IsImageFile(dto.ImageFile))
-                        return BadRequest("Please upload a valid image file (jpg, jpeg, png, gif).");
+            if (!result.Success)
+                return result.Message.Contains("not found") ? NotFound(result.Message) : BadRequest(result.Message);
 
-                    // Delete old image
-                    if (!string.IsNullOrEmpty(banner.ImageUrl))
-                    {
-                        string oldFolder = GetBannerFolderPath();
-                        string oldFileName = Path.GetFileName(banner.ImageUrl);
-                        ImageHelper.DeleteFileIfExists(oldFolder, oldFileName);
-                    }
-
-                    // Save new image
-                    string folderPath = Path.Combine(_env.WebRootPath, _config["ImageSettings:BannerPath"]);
-                    await ImageHelper.SaveImageAsync(dto.ImageFile, folderPath, dto.BannerName);
-                }
-
-                _context.Banners.Update(banner);
-                await _context.SaveChangesAsync();
-
-                return Ok(banner);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, "Internal server error: " + ex.Message);
-            }
+            return Ok(result.Data);
         }
 
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin,Employee")]
         public async Task<IActionResult> Delete(int id)
         {
-            try
-            {
-                var banner = await _context.Banners.FindAsync(id);
-                if (banner == null)
-                    return NotFound("Banner not found.");
+            var result = await _bannerService.DeleteBannerAsync(id);
 
-                if (!string.IsNullOrEmpty(banner.ImageUrl))
-                {
-                    string folderPath = GetBannerFolderPath();
-                    string fileName = Path.GetFileName(banner.ImageUrl);
-                    ImageHelper.DeleteFileIfExists(folderPath, fileName);
-                }
+            if (!result.Success)
+                return result.Message.Contains("not found") ? NotFound(result.Message) : BadRequest(result.Message);
 
-                _context.Banners.Remove(banner);
-                await _context.SaveChangesAsync();
-
-                return Ok("Banner deleted successfully.");
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, "Internal server error: " + ex.Message);
-            }
+            return Ok(result.Message);
         }
     }
 }

@@ -77,14 +77,3 @@ namespace ElectronicStore.Api.Controllers
         }
     }
 }
-                return NotFound();
-
-            _context.Suppliers.Remove(supplier);
-            await _context.SaveChangesAsync();
-
-            return Ok("Delete susscess");
-        }
-
-        
-    }
-}

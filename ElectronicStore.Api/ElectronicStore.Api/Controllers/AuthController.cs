@@ -13,14 +13,10 @@ namespace ElectronicStore.Api.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
-        private readonly ElectronicStoreContext _db;
-        private readonly IConfiguration _config;
 
-        public AuthController(IAuthService authService, ElectronicStoreContext db, IConfiguration config)
+        public AuthController(IAuthService authService)
         {
             _authService = authService;
-            _db = db;
-            _config = config;
         }
 
         [HttpPost("register")]
@@ -93,72 +89,15 @@ namespace ElectronicStore.Api.Controllers
         [Authorize]
         public async Task<IActionResult> GetMyProfile()
         {
-            try
-            {
-                var accountID = int.Parse(User.FindFirst("AccountID").Value);
-                var baseUrl = $"{Request.Scheme}://{Request.Host}/";
-                if (User.IsInRole("Customer"))
-                {
-                    var customer = await _db.Customers
-                    .Include(c => c.Account)
-                    .Where(c => c.AccountId == accountID)
-                    .Select(c => new
-                    {
-                        c.Account.Role.RoleName,
-                        c.CustomerId,
-                        c.FullName,
-                        c.Address,
-                        c.Gender,
-                        BirthDate = c.BirthDate.HasValue
-                            ? c.BirthDate.Value.ToString("dd/MM/yyyy")
-                            : null, // format ngày kiểu Việt Nam
-                        c.Phone,
-                        c.Account.Email,
-                        c.Point,
-                        c.Account.IsActive,
-                        ImageUrl = $"{baseUrl}{_config["ImageSettings:AccountPath"]}{c.Account.Avatar}"
-                    })
-                    .FirstOrDefaultAsync();
+            var accountID = int.Parse(User.FindFirst("AccountID").Value);
+            var role = User.IsInRole("Customer") ? "Customer" : "Employee";
 
-                    if (customer == null)
-                        return NotFound("Customer not found.");
+            var result = await _authService.GetProfileAsync(accountID, role);
+            
+            if (!result.Success)
+                return NotFound(result.Message);
 
-                    // Kiểm tra quyền truy cập
-                    return Ok(customer);
-                }
-                else
-                {
-                    var employee = await _db.Employees
-                    .Include(c => c.Account)
-                    .ThenInclude(c => c.Role)
-                    .Where(c => c.AccountId == accountID)
-                    .Select(c => new
-                    {
-                        c.Account.Role.RoleName,
-                        c.EmployeeId,
-                        c.FullName,
-                        c.Address,
-                        c.Position,
-                        c.Salary,
-                        c.HireDate,
-                        c.BirthDate,
-                        c.Phone,
-                        c.Account.Email,
-                        c.Account.IsActive,
-                        ImageUrl = $"{baseUrl}{_config["ImageSettings:AccountPath"]}{c.Account.Avatar}",
-                    })
-                    .FirstOrDefaultAsync();
-
-                    if (employee == null) return NotFound("Employee not found.");
-                    return Ok(employee);
-
-                }
-
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, "Internal server error: " + ex.Message);
-            }
+            return Ok(result.Data);
         }
     }
 }

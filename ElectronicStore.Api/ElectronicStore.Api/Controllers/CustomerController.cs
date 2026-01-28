@@ -12,12 +12,10 @@ namespace ElectronicStore.Api.Controllers
     public class CustomersController : ControllerBase
     {
         private readonly ICustomerService _customerService;
-        private readonly ElectronicStoreContext _context;
 
-        public CustomersController(ICustomerService customerService, ElectronicStoreContext context)
+        public CustomersController(ICustomerService customerService)
         {
             _customerService = customerService;
-            _context = context;
         }
         [HttpGet]
         [Authorize(Roles = "Admin,Employee")]

@@ -2,23 +2,27 @@ using ElectronicStore.Api.Data;
 using ElectronicStore.Api.Dto;
 using ElectronicStore.Api.Repositories.Interfaces;
 using ElectronicStore.Api.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace ElectronicStore.Api.Services
 {
     public class AuthService : IAuthService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly ElectronicStoreContext _context;
         private readonly TokenService _tokenService;
         private readonly EmailService _emailService;
         private readonly IConfiguration _config;
 
         public AuthService(
             IUnitOfWork unitOfWork,
+            ElectronicStoreContext context,
             TokenService tokenService,
             EmailService emailService,
             IConfiguration config)
         {
             _unitOfWork = unitOfWork;
+            _context = context;
             _tokenService = tokenService;
             _emailService = emailService;
             _config = config;
@@ -204,6 +208,76 @@ namespace ElectronicStore.Api.Services
         {
             // Implementation for reset password with token
             throw new NotImplementedException();
+        }
+
+        public async Task<(bool Success, string Message, object? Data)> GetProfileAsync(int accountId, string role)
+        {
+            try
+            {
+                var baseUrl = _config["AppSettings:BaseUrl"];
+
+                if (role == "Customer")
+                {
+                    var customer = await _context.Customers
+                        .Include(c => c.Account)
+                        .ThenInclude(a => a.Role)
+                        .Where(c => c.AccountId == accountId)
+                        .Select(c => new
+                        {
+                            c.Account.Role.RoleName,
+                            c.CustomerId,
+                            c.FullName,
+                            c.Address,
+                            c.Gender,
+                            BirthDate = c.BirthDate.HasValue
+                                ? c.BirthDate.Value.ToString("dd/MM/yyyy")
+                                : null,
+                            c.Phone,
+                            c.Account.Email,
+                            c.Point,
+                            c.Account.IsActive,
+                            ImageUrl = $"{baseUrl}{_config["ImageSettings:AccountPath"]}{c.Account.Avatar}"
+                        })
+                        .FirstOrDefaultAsync();
+
+                    if (customer == null)
+                        return (false, "Customer not found.", null);
+
+                    return (true, "Success", customer);
+                }
+                else
+                {
+                    var employee = await _context.Employees
+                        .Include(c => c.Account)
+                        .ThenInclude(c => c.Role)
+                        .Where(c => c.AccountId == accountId)
+                        .Select(c => new
+                        {
+                            c.Account.Role.RoleName,
+                            c.EmployeeId,
+                            c.FullName,
+                            c.Address,
+                            c.Position,
+                            c.Salary,
+                            c.HireDate,
+                            c.BirthDate,
+                            c.Phone,
+                            c.Account.Email,
+                            c.Account.IsActive,
+                            ImageUrl = $"{baseUrl}{_config["ImageSettings:AccountPath"]}{c.Account.Avatar}",
+                        })
+                        .FirstOrDefaultAsync();
+
+                    if (employee == null)
+                        return (false, "Employee not found.", null);
+
+                    return (true, "Success", employee);
+                }
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Internal server error: {ex.Message}", null);
+            }
         }
 
         private string GenerateRandomPassword(int length)

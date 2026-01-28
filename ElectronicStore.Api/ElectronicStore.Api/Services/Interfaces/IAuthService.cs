@@ -10,5 +10,6 @@ namespace ElectronicStore.Api.Services.Interfaces
         Task<(bool Success, string Message)> ChangePasswordAsync(int accountId, ChangePasswordDto dto);
         Task<(bool Success, string Message)> ForgotPasswordAsync(ForgotPasswordDto dto);
         Task<(bool Success, string Message)> ResetPasswordAsync(string token, string newPassword);
+        Task<(bool Success, string Message, object? Data)> GetProfileAsync(int accountId, string role);
     }
 }
