@@ -1,9 +1,7 @@
-﻿using ElectronicStore.Api.Data;
-using ElectronicStore.Api.Dto;
-using ElectronicStore.Api.Helper;
+﻿using ElectronicStore.Api.Dto;
+using ElectronicStore.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace ElectronicStore.Api.Controllers
 {
@@ -11,73 +9,33 @@ namespace ElectronicStore.Api.Controllers
     [ApiController]
     public class BannerController : ControllerBase
     {
-        private readonly ElectronicStoreContext _context;
-        private readonly IWebHostEnvironment _env;
-        private readonly IConfiguration _config;
+        private readonly IBannerService _bannerService;
 
-        public BannerController(ElectronicStoreContext context, IWebHostEnvironment env, IConfiguration config)
+        public BannerController(IBannerService bannerService)
         {
-            _context = context;
-            _env = env;
-            _config = config;
-        }
-
-        private string GetBannerFolderPath()
-        {
-            return Path.Combine(_env.WebRootPath, _config["ImageSettings:BannerPath"]);
-        }
-
-        private async Task<string> SaveBannerImageAsync(string bannerName, IFormFile imageFile)
-        {
-            string folderPath = GetBannerFolderPath();
-            if (!Directory.Exists(folderPath))
-                Directory.CreateDirectory(folderPath);
-
-            string normalized = ImageHelper.NormalizeFileName(bannerName);
-            string extension = Path.GetExtension(imageFile.FileName);
-            string fileName = $"Banner_{normalized}{extension}";
-            string filePath = Path.Combine(folderPath, fileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await imageFile.CopyToAsync(stream);
-            }
-
-            return $"{_config["ImageSettings:BannerPath"]}{fileName}";
+            _bannerService = bannerService;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            try
-            {
-                var baseUrl = _config["AppSettings:BaseUrl"];
-                var banners = await _context.Banners
-                    .Select(b => new
-                    {
-                        b.BannerId,
-                        b.BannerName,
-                        ImageUrl = $"{baseUrl}{_config["ImageSettings:BannerPath"]}{b.ImageUrl}",
-                    })
-                    .ToListAsync();
+            var result = await _bannerService.GetAllBannersAsync();
+            
+            if (!result.Success)
+                return StatusCode(500, result.Message);
 
-                return Ok(banners);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, "Internal server error: " + ex.Message);
-            }
+            return Ok(result.Data);
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            try
-            {
-                var baseUrl = _config["AppSettings:BaseUrl"];
-                var banner = await _context.Banners
-                    .Where(b => b.BannerId == id)
-                    .Select(b => new
+            var result = await _bannerService.GetBannerByIdAsync(id);
+            
+            if (!result.Success)
+                return NotFound(result.Message);
+
+            return Ok(result.Data);
                     {
                         b.BannerId,
                         b.BannerName,

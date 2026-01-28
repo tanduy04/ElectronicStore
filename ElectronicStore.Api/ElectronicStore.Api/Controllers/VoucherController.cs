@@ -1,9 +1,7 @@
-﻿using ElectronicStore.Api.Data;
-using ElectronicStore.Api.Dto;
+﻿using ElectronicStore.Api.Dto;
+using ElectronicStore.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace ElectronicStore.Api.Controllers
 {
@@ -12,69 +10,60 @@ namespace ElectronicStore.Api.Controllers
     [Authorize(Roles = "Admin,Employee")]
     public class VoucherController : ControllerBase
     {
-        private readonly ElectronicStoreContext _context;
+        private readonly IVoucherService _voucherService;
 
-        public VoucherController(ElectronicStoreContext context)
+        public VoucherController(IVoucherService voucherService)
         {
-            _context = context;
+            _voucherService = voucherService;
         }
 
-        // GET: api/vouchers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var vouchers = await _context.Vouchers.ToListAsync();
-            return Ok(vouchers);
+            var result = await _voucherService.GetAllVouchersAsync();
+            
+            if (!result.Success)
+                return StatusCode(500, result.Message);
+
+            return Ok(result.Data);
         }
 
-        // GET: api/vouchers/5
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var voucher = await _context.Vouchers.FindAsync(id);
-            if (voucher == null) return NotFound();
-            return Ok(voucher);
-        }
-        
+            var result = await _voucherService.GetVoucherByIdAsync(id);
+            
+            if (!result.Success)
+                return NotFound(result.Message);
 
-        // POST: api/vouchers
+            return Ok(result.Data);
+        }
+
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] VoucherDto model)
         {
-            if(!ModelState.IsValid) return BadRequest(ModelState);
-            Voucher voucher = new Voucher
-            {
-                VoucherCode = model.VoucherCode,
-                VoucherName = model.VoucherName,
-                DiscountType = model.DiscountType,
-                DiscountValue = model.DiscountValue,
-                Quantity = model.Quantity,
-                StartDate = model.StartDate,
-                EndDate = model.EndDate,
-                IsActive = model.IsActive
-            };
-            _context.Vouchers.Add(voucher);
-            await _context.SaveChangesAsync();
-            return Ok("Created successfully");
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var result = await _voucherService.CreateVoucherAsync(model);
+            
+            if (!result.Success)
+                return BadRequest(result.Message);
+
+            return Ok(result.Message);
         }
 
-        // PUT: api/vouchers/5
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] VoucherDto model)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-            var voucherExists = await _context.Vouchers.FindAsync(id);
-            if (voucherExists == null) return NotFound();
-            voucherExists.VoucherCode = model.VoucherCode;
-            voucherExists.VoucherName = model.VoucherName;
-            voucherExists.DiscountType = model.DiscountType;
-            voucherExists.DiscountValue = model.DiscountValue;
-            voucherExists.Quantity = model.Quantity;
-            voucherExists.StartDate = model.StartDate;
-            voucherExists.EndDate = model.EndDate;
-            voucherExists.IsActive = model.IsActive;
-             _context.Vouchers.Update(voucherExists);
-            await _context.SaveChangesAsync();
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var result = await _voucherService.UpdateVoucherAsync(id, model);
+            
+            if (!result.Success)
+                return NotFound(result.Message);
+
             return NoContent();
         }
 

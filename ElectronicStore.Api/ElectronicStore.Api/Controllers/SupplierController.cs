@@ -1,83 +1,82 @@
-﻿using ElectronicStore.Api.Data;
-using ElectronicStore.Api.Dto;
-using Microsoft.AspNetCore.Http;
+﻿using ElectronicStore.Api.Dto;
+using ElectronicStore.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 
 namespace ElectronicStore.Api.Controllers
 {
-    //
     [Route("api/[controller]")]
     [ApiController]
     public class SupplierController : ControllerBase
     {
-        private readonly ElectronicStoreContext _context;
+        private readonly ISupplierService _supplierService;
 
-        public SupplierController(ElectronicStoreContext context)
+        public SupplierController(ISupplierService supplierService)
         {
-            _context= context;
+            _supplierService = supplierService;
         }
+
         [HttpGet("GetAll")]
         public async Task<ActionResult> GetSuppliers()
         {
-            var suppliers= await _context.Suppliers.ToListAsync();
-            return Ok(suppliers);
+            var result = await _supplierService.GetAllSuppliersAsync();
+            
+            if (!result.Success)
+                return StatusCode(500, result.Message);
+
+            return Ok(result.Data);
         }
 
-        // 🟢 Lấy 1 Supplier theo ID
         [HttpGet("{id}")]
         public async Task<ActionResult> GetSupplier(int id)
         {
-            var supplier = await _context.Suppliers.FindAsync(id);
+            var result = await _supplierService.GetSupplierByIdAsync(id);
+            
+            if (!result.Success)
+                return NotFound(result.Message);
 
-            if (supplier == null)
-                return NotFound();
-
-            return Ok(supplier);
+            return Ok(result.Data);
         }
 
         [HttpPost]
-        public async Task<ActionResult<Supplier>> CreateSupplier([FromForm] SupplierDto Supplier)
+        public async Task<ActionResult> CreateSupplier([FromForm] SupplierDto supplierDto)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-            var supplier = new Supplier
-            {
-                SupplierName = Supplier.SupplierName,
-                SupplierAddress = Supplier.SupplierAddress,
-                SupplierPhone = Supplier.SupplierPhone
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-            };
-            _context.Suppliers.Add(supplier);
-            await _context.SaveChangesAsync();
+            var result = await _supplierService.CreateSupplierAsync(supplierDto);
+            
+            if (!result.Success)
+                return BadRequest(result.Message);
 
-            return Ok("Created Success");
+            return Ok(result.Message);
         }
 
-        // 🟢 Cập nhật Supplier
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateSupplier(int id, [FromForm] SupplierDto SupplierDto)
+        public async Task<IActionResult> UpdateSupplier(int id, [FromForm] SupplierDto supplierDto)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-            var supplier = await _context.Suppliers.FindAsync(id);
-            if (supplier == null)
-                return NotFound();
+            var result = await _supplierService.UpdateSupplierAsync(id, supplierDto);
+            
+            if (!result.Success)
+                return NotFound(result.Message);
 
-            supplier.SupplierName = SupplierDto.SupplierName;
-            supplier.SupplierAddress = SupplierDto.SupplierAddress;
-            supplier.SupplierPhone = SupplierDto.SupplierPhone;
-            _context.Update(supplier);
-            await _context.SaveChangesAsync();
-            return Ok("Updated Success");
+            return Ok(result.Message);
         }
 
-        // 🟢 Xóa Supplier
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteSupplier(int id)
         {
-            var supplier = await _context.Suppliers.FindAsync(id);
-            if (supplier == null)
+            var result = await _supplierService.DeleteSupplierAsync(id);
+            
+            if (!result.Success)
+                return NotFound(result.Message);
+
+            return Ok(result.Message);
+        }
+    }
+}
                 return NotFound();
 
             _context.Suppliers.Remove(supplier);

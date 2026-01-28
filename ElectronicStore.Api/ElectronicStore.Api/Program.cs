@@ -1,4 +1,7 @@
 ﻿using ElectronicStore.Api.Services;
+using ElectronicStore.Api.Services.Interfaces;
+using ElectronicStore.Api.Repositories;
+using ElectronicStore.Api.Repositories.Interfaces;
 using ElectronicStore.Api.Data;
 using ElectronicStore.Api.Service;
 using ElectronicStore.Api.Service.MailService;
@@ -110,6 +113,45 @@ builder.Services.AddCors(options =>
     });
 });
 builder.Services.AddTransient<EmailService>();
+
+// Register Repositories and Unit of Work
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+builder.Services.AddScoped<IAccountRepository, AccountRepository>();
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IOrderDetailRepository, OrderDetailRepository>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<IBrandRepository, BrandRepository>();
+builder.Services.AddScoped<ICartRepository, CartRepository>();
+builder.Services.AddScoped<IVoucherRepository, VoucherRepository>();
+builder.Services.AddScoped<IFlashSaleRepository, FlashSaleRepository>();
+builder.Services.AddScoped<IProductReviewRepository, ProductReviewRepository>();
+builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
+builder.Services.AddScoped<IImportRepository, ImportRepository>();
+builder.Services.AddScoped<IBannerRepository, BannerRepository>();
+builder.Services.AddScoped<IQuestionAndAnswerRepository, QuestionAndAnswerRepository>();
+
+// Register Business Services
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<ICartService, CartService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IBrandService, BrandService>();
+builder.Services.AddScoped<IVoucherService, VoucherService>();
+builder.Services.AddScoped<ISupplierService, SupplierService>();
+builder.Services.AddScoped<IBannerService, BannerService>();
+builder.Services.AddScoped<IEmployeeService, EmployeeService>();
+builder.Services.AddScoped<IProductReviewService, ProductReviewService>();
+builder.Services.AddScoped<IQuestionAndAnswerService, QuestionAndAnswerService>();
+builder.Services.AddScoped<IFlashSaleService, FlashSaleService>();
+builder.Services.AddScoped<IImportService, ImportService>();
+builder.Services.AddScoped<IStatisticsService, StatisticsService>();
+builder.Services.AddScoped<ICheckoutService, CheckoutService>();
 
 
 

@@ -1,9 +1,6 @@
-﻿using ElectronicStore.Api.Data;
-using ElectronicStore.Api.Dto;
+﻿using ElectronicStore.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace ElectronicStore.Api.Controllers
 {
@@ -12,92 +9,41 @@ namespace ElectronicStore.Api.Controllers
     [Authorize(Roles = "Admin,Employee")]
     public class StatisticsController : ControllerBase
     {
-        private readonly ElectronicStoreContext _context;
+        private readonly IStatisticsService _statisticsService;
 
-        public StatisticsController(ElectronicStoreContext context)
+        public StatisticsController(IStatisticsService statisticsService)
         {
-            _context = context;
+            _statisticsService = statisticsService;
         }
 
-        // =========================
-        // 1️⃣ Thống kê theo ngày
-        // =========================
         [HttpGet("by-day")]
         public async Task<IActionResult> GetByDay([FromQuery] DateTime? date)
         {
-            DateTime targetDate = date?.Date ?? DateTime.Now.Date;
-
-            var totalRevenue = await _context.Orders
-                .Where(o => o.Status == "Delivered" && o.OrderDate.Date == targetDate)
-                .SumAsync(o => (decimal?)o.TotalAmount) ?? 0;
-
-            var totalExpense = await _context.Imports
-                .Where(i => i.Status == "Delivered" && i.ImportDate.Date == targetDate)
-                .SumAsync(i => (decimal?)i.TotalAmount) ?? 0;
-
-            var result = new StatisticsResultDto
-            {
-                Type = "Day",
-                Period = targetDate.ToString("yyyy-MM-dd"),
-                TotalRevenue = totalRevenue,
-                TotalExpense = totalExpense,
-                Profit = totalRevenue - totalExpense
-            };
-
-            return Ok(result);
+            var result = await _statisticsService.GetStatisticsByDayAsync(date);
+            if (!result.Success)
+                return StatusCode(500, result.Message);
+            return Ok(result.Data);
         }
 
-        // =========================
-        // 2️⃣ Thống kê theo tháng
-        // =========================
         [HttpGet("by-month")]
         public async Task<IActionResult> GetByMonth([FromQuery] int? month, [FromQuery] int? year)
         {
-            int targetMonth = month ?? DateTime.Now.Month;
-            int targetYear = year ?? DateTime.Now.Year;
-
-            var totalRevenue = await _context.Orders
-                .Where(o => o.Status == "Delivered" &&
-                            o.OrderDate.Month == targetMonth &&
-                            o.OrderDate.Year == targetYear)
-                .SumAsync(o => (decimal?)o.TotalAmount) ?? 0;
-
-            var totalExpense = await _context.Imports
-                .Where(i => i.Status == "Delivered" &&
-                            i.ImportDate.Month == targetMonth &&
-                            i.ImportDate.Year == targetYear)
-                .SumAsync(i => (decimal?)i.TotalAmount) ?? 0;
-
-            var result = new StatisticsResultDto
-            {
-                Type = "Month",
-                Period = $"{targetMonth}/{targetYear}",
-                TotalRevenue = totalRevenue,
-                TotalExpense = totalExpense,
-                Profit = totalRevenue - totalExpense
-            };
-
-            return Ok(result);
+            var result = await _statisticsService.GetStatisticsByMonthAsync(month, year);
+            if (!result.Success)
+                return StatusCode(500, result.Message);
+            return Ok(result.Data);
         }
 
-        // =========================
-        // 3️⃣ Thống kê theo năm
-        // =========================
         [HttpGet("by-year")]
         public async Task<IActionResult> GetByYear([FromQuery] int? year)
         {
-            int targetYear = year ?? DateTime.Now.Year;
-
-            var totalRevenue = await _context.Orders
-                .Where(o => o.Status == "Delivered" && o.OrderDate.Year == targetYear)
-                .SumAsync(o => (decimal?)o.TotalAmount) ?? 0;
-
-            var totalExpense = await _context.Imports
-                .Where(i => i.Status == "Delivered" && i.ImportDate.Year == targetYear)
-                .SumAsync(i => (decimal?)i.TotalAmount) ?? 0;
-
-            var result = new StatisticsResultDto
-            {
+            var result = await _statisticsService.GetStatisticsByYearAsync(year);
+            if (!result.Success)
+                return StatusCode(500, result.Message);
+            return Ok(result.Data);
+        }
+    }
+}
                 Type = "Year",
                 Period = targetYear.ToString(),
                 TotalRevenue = totalRevenue,

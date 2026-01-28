@@ -1,83 +1,50 @@
-﻿using ElectronicStore.Api.Data;
-using ElectronicStore.Api.Dto;
-using ElectronicStore.Api.Helper;
+﻿using ElectronicStore.Api.Dto;
+using ElectronicStore.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 [Route("api/[controller]")]
 [ApiController]
 public class CategoriesController : ControllerBase
 {
-    private readonly IWebHostEnvironment _env;
-    private readonly IConfiguration _config;
-    private readonly ElectronicStoreContext _context;
+    private readonly ICategoryService _categoryService;
 
-    public CategoriesController(IWebHostEnvironment env, IConfiguration config, ElectronicStoreContext context)
+    public CategoriesController(ICategoryService categoryService)
     {
-        _env = env;
-        _config = config;
-        _context = context;
+        _categoryService = categoryService;
     }
 
     [HttpGet]
-    public IActionResult GetAll()
+    public async Task<IActionResult> GetAll()
     {
-        try
-        {
-            var categories = _context.Categories.ToList();
-            var baseUrl = _config["AppSettings:BaseUrl"];
+        var result = await _categoryService.GetAllCategoriesAsync();
 
-            var result = categories.Select(c => new
-            {
-                c.CategoryId,
-                c.CategoryName,
-                ImageUrl = $"{baseUrl}{_config["ImageSettings:CategoryPath"]}{c.CategoryImage}",
-                c.IsActive
-            });
+        if (!result.Success)
+            return StatusCode(500, result.Message);
 
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Internal server error: {ex.Message}");
-        }
+        return Ok(result.Data);
     }
 
     [HttpGet("{id}")]
-    public IActionResult GetById(int id)
+    public async Task<IActionResult> GetById(int id)
     {
-        try
-        {
-            var category = _context.Categories.Find(id);
-            if (category == null) return NotFound();
+        var result = await _categoryService.GetCategoryByIdAsync(id);
 
-            var baseUrl = _config["AppSettings:BaseUrl"];
+        if (!result.Success)
+            return NotFound(result.Message);
 
-            return Ok(new
-            {
-                category.CategoryId,
-                category.CategoryName,
-                ImageUrl = $"{baseUrl}{_config["ImageSettings:CategoryPath"]}{category.CategoryImage}",
-                category.IsActive
-            });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, "Internal server error: " + ex.Message);
-        }
+        return Ok(result.Data);
     }
     [HttpGet("search")]
-    public IActionResult SearchByName(string name)
+    public async Task<IActionResult> SearchByName(string name)
     {
-        try
-        {
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                return BadRequest("Search term is required.");
-            }
+        var result = await _categoryService.SearchCategoriesAsync(name);
 
-            var baseUrl = _config["AppSettings:BaseUrl"];
+        if (!result.Success)
+            return BadRequest(result.Message);
+
+        return Ok(result.Data);
+    }
 
             var brands = _context.Categories
                 .Where(b => b.CategoryName.Contains(name)) // Tìm theo tên

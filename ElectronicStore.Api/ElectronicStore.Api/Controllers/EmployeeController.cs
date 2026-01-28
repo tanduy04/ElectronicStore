@@ -1,10 +1,7 @@
-﻿using ElectronicStore.Api.Data;
-using ElectronicStore.Api.Dto;
-using ElectronicStore.Api.Helper;
+﻿using ElectronicStore.Api.Dto;
+using ElectronicStore.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace ElectronicStore.Api.Controllers
 {
@@ -12,72 +9,23 @@ namespace ElectronicStore.Api.Controllers
     [ApiController]
     public class EmployeeController : ControllerBase
     {
-        private readonly ElectronicStoreContext _context;
-        private readonly IWebHostEnvironment _env;
-        private readonly IConfiguration _config;
+        private readonly IEmployeeService _employeeService;
 
-        public EmployeeController(ElectronicStoreContext context, IWebHostEnvironment env, IConfiguration config)
+        public EmployeeController(IEmployeeService employeeService)
         {
-            _context = context;
-            _env = env;
-            _config = config;
-        }
-        
-        private string GetFolder()
-        {
-            var relative = _config["AccountPath:AccountPath"] ?? "Image/AvatarAccount/";
-            return Path.Combine(_env.WebRootPath ?? "wwwroot", relative);
-        }
-
-        private string GetBaseUrl() => _config["AppSettings:BaseUrl"];
-
-        private object MapEmployeeToDto(Employee c)
-        {
-            var baseUrl = GetBaseUrl();
-            return new
-            {
-                c.EmployeeId,
-                c.FullName,
-                c.Address,
-                c.Position,
-                c.Salary,
-                c.HireDate,
-                c.BirthDate,
-                c.Phone,
-                c.Account.Email,
-                c.Account.IsActive,
-                ImageUrl = $"{baseUrl}{_config["ImageSettings:AccountPath"]}{c.Account.Avatar}",
-            };
+            _employeeService = employeeService;
         }
         [HttpGet]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAll(int pageNumber = 1, int pageSize = 10)
         {
-            try
-            {
-                var query = _context.Employees
-                .Include(c => c.Account)
-                .OrderByDescending(c => c.EmployeeId);
+            var result = await _employeeService.GetAllEmployeesAsync(pageNumber, pageSize);
 
-                var totalItems = await query.CountAsync();
+            if (!result.Success)
+                return StatusCode(500, result.Message);
 
-                var employees = await query
-                    .Skip((pageNumber - 1) * pageSize)
-                    .Take(pageSize)
-                    .ToListAsync();
-                var result = employees.Select(MapEmployeeToDto);
-                return Ok(new
-                {
-                    TotalItems = totalItems,
-                    PageNumber = pageNumber,
-                    PageSize = pageSize,
-                    TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize),
-                    Data = result
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, "Internal server error: " + ex.Message);
+            return Ok(result.Data);
+        }
             }
         }
 

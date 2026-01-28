@@ -1,83 +1,43 @@
-﻿using ElectronicStore.Api.Data;
-using ElectronicStore.Api.Dto;
+﻿using ElectronicStore.Api.Dto;
+using ElectronicStore.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Identity.Client;
 
 namespace ElectronicStore.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-
     public class ProductReviewController : ControllerBase
     {
-        private readonly ElectronicStoreContext _context;
+        private readonly IProductReviewService _productReviewService;
 
-        public ProductReviewController(ElectronicStoreContext context)
+        public ProductReviewController(IProductReviewService productReviewService)
         {
-            _context = context;
+            _productReviewService = productReviewService;
         }
+
         [HttpGet]
         [Authorize(Roles = "Admin,Employee")]
-
         public async Task<IActionResult> GetAllReviews(bool isactive = false)
         {
-            try
-            {
-                var reviews = await _context.ProductReviews.Include(s => s.Product)
-                .Where(r => r.ParentId == null && r.IsActive == isactive)
-                .OrderByDescending(r => r.CreatedAt)
-                .Select(r => new ProductReviewDto
-                {
-                    ReviewId = r.ReviewId,
-                    ProductName = r.Product.ProductName,
-                    FullName = r.FullName,
-                    Phone = r.Phone,
-                    Rating = r.Rating,
-                    ParentId = r.ParentId,
-                    Content = r.Content,
-                    CreatedAt = r.CreatedAt,
-                    IsActive = r.IsActive
+            var result = await _productReviewService.GetAllReviewsAsync(isactive);
 
-                })
-                .ToListAsync();
-                if (reviews == null || reviews.Count == 0)
-                    return NotFound();
-                foreach (var review in reviews)
-                {
-                    var childReview = await _context.ProductReviews
-                         .Where(cr => cr.ParentId == review.ReviewId)
-                         .OrderByDescending(r => r.CreatedAt)
-                         .Select(r => new ViewReplyReview
-                         {
-                             ParentID = r.ParentId.Value,
-                             ReviewID = r.ReviewId,
-                             Name = r.FullName,
-                             Content = r.Content,
-                             createAt = r.CreatedAt
-                         })
-               .FirstOrDefaultAsync();
-                    if (childReview != null)
-                        review.ReplyReview = childReview;
-                }
-                return Ok(reviews);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, "Internal server error: " + ex.Message);
-            }
+            if (!result.Success)
+                return NotFound(result.Message);
 
+            return Ok(result.Data);
         }
         [HttpDelete]
         [Authorize(Roles = "Admin,Employee")]
         public async Task<IActionResult> DeleteReview(int reviewId)
         {
-            try
-            {
-                var review = await _context.ProductReviews.FirstOrDefaultAsync(r => r.ReviewId == reviewId);
-                if (review == null)
+            var result = await _productReviewService.DeleteReviewAsync(reviewId);
+
+            if (!result.Success)
+                return NotFound(result.Message);
+
+            return Ok(result.Message);
+        }
                     return NotFound();
                 _context.ProductReviews.Remove(review);
                 await _context.SaveChangesAsync();

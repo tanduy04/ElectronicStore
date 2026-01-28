@@ -1,6 +1,7 @@
 ﻿using ElectronicStore.Api.Data;
 using ElectronicStore.Api.Dto;
 using ElectronicStore.Api.Helper;
+using ElectronicStore.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,12 +13,18 @@ namespace ElectronicStore.Api.Controllers
     [ApiController]
     public class ProductsController : ControllerBase
     {
+        private readonly IProductService _productService;
         private readonly ElectronicStoreContext _context;
         private readonly IWebHostEnvironment _env;
         private readonly IConfiguration _config;
 
-        public ProductsController(ElectronicStoreContext context, IWebHostEnvironment env, IConfiguration config)
+        public ProductsController(
+            IProductService productService,
+            ElectronicStoreContext context,
+            IWebHostEnvironment env,
+            IConfiguration config)
         {
+            _productService = productService;
             _context = context;
             _env = env;
             _config = config;

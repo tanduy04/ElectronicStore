@@ -1,10 +1,7 @@
-﻿using ElectronicStore.Api.Data;
-using ElectronicStore.Api.Dto;
-using ElectronicStore.Api.Helper;
-using Google.Cloud.AIPlatform.V1;
+﻿using ElectronicStore.Api.Dto;
+using ElectronicStore.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace ElectronicStore.Api.Controllers
 {
@@ -12,63 +9,32 @@ namespace ElectronicStore.Api.Controllers
     [ApiController]
     public class BrandsController : ControllerBase
     {
-        private readonly IWebHostEnvironment _env;
-        private readonly IConfiguration _config;
-        private readonly ElectronicStoreContext _context;
+        private readonly IBrandService _brandService;
 
-        public BrandsController(IWebHostEnvironment env, IConfiguration config, ElectronicStoreContext context)
+        public BrandsController(IBrandService brandService)
         {
-            _env = env;
-            _config = config;
-            _context = context;
+            _brandService = brandService;
         }
         [HttpGet]
-        public IActionResult GetAll()
+        public async Task<IActionResult> GetAll()
         {
-            try
-            {
-                var brands = _context.Brands.ToList();
-                var baseUrl = _config["AppSettings:BaseUrl"];
+            var result = await _brandService.GetAllBrandsAsync();
 
-                var result = brands.Select(b => new
-                {
-                    b.BrandId,
-                    b.BrandName,
-                    ImageUrl = $"{baseUrl}{_config["ImageSettings:BrandPath"]}{b.BrandImage}",
-                    b.IsActive
-                });
+            if (!result.Success)
+                return StatusCode(500, result.Message);
 
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-
+            return Ok(result.Data);
         }
 
         [HttpGet("{id}")]
-        public IActionResult GetById(int id)
+        public async Task<IActionResult> GetById(int id)
         {
-            try
-            {
-                var brand = _context.Brands.Find(id);
-                if (brand == null) return NotFound("Brand not found.");
+            var result = await _brandService.GetBrandByIdAsync(id);
 
-                var baseUrl = _config["AppSettings:BaseUrl"];
+            if (!result.Success)
+                return NotFound(result.Message);
 
-                return Ok(new
-                {
-                    brand.BrandId,
-                    brand.BrandName,
-                    ImageUrl = $"{baseUrl}{_config["ImageSettings:BrandPath"]}{brand.BrandImage}",
-                    brand.IsActive
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
+            return Ok(result.Data);
         }
         [HttpGet("get-by-categoryId/{id}")]
         public IActionResult GetByCategoriesID(int id=0)
@@ -115,39 +81,14 @@ namespace ElectronicStore.Api.Controllers
             }
         }
         [HttpGet("search")]
-        public IActionResult SearchByName(string name)
+        public async Task<IActionResult> SearchByName(string name)
         {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(name))
-                {
-                    return BadRequest("Search term is required.");
-                }
+            var result = await _brandService.SearchBrandsAsync(name);
 
-                var baseUrl = _config["AppSettings:BaseUrl"];
+            if (!result.Success)
+                return BadRequest(result.Message);
 
-                var brands = _context.Brands
-                    .Where(b => b.BrandName.Contains(name)) // Tìm theo tên
-                    .Select(b => new
-                    {
-                        b.BrandId,
-                        b.BrandName,
-                        ImageUrl = $"{baseUrl}{_config["ImageSettings:BrandPath"]}{b.BrandImage}",
-                        b.IsActive
-                    })
-                    .ToList();
-
-                if (!brands.Any())
-                {
-                    return NotFound("Not found");
-                }
-
-                return Ok(brands);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
+            return Ok(result.Data);
         }
 
 
